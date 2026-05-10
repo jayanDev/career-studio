@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import type { Locale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export function authPath(locale: Locale, path: string, params?: Record<string, string>) {
   const search = new URLSearchParams(params);
@@ -24,4 +25,18 @@ export async function requireUser(locale: Locale) {
   }
 
   return session.user;
+}
+
+export async function requireStaff(locale: Locale) {
+  const user = await requireUser(locale);
+  const account = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { isStaff: true, isSuperuser: true },
+  });
+
+  if (!account?.isStaff && !account?.isSuperuser) {
+    redirect(authPath(locale, "/dashboard"));
+  }
+
+  return user;
 }

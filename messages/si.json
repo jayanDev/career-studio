@@ -671,6 +671,7 @@
     }
   },
   "Mentorship": "Mentorship",
+  "Admin": "Admin",
   "phase5": {
     "meta": {
       "messaging": {
@@ -816,6 +817,93 @@
       "meetingLinkPlaceholder": "Meeting link",
       "sessionNotes": "Session notes",
       "schedule": "Schedule"
+    }
+  },
+  "phase6": {
+    "meta": {
+      "admin": {
+        "title": "Admin Moderation - Career Studio",
+        "description": "Review pending comments, feedback, and forum flags."
+      }
+    },
+    "blog": {
+      "comments": "Comments",
+      "pendingReview": "Your comment is waiting for moderation.",
+      "emptyComments": "No approved comments yet.",
+      "like": "Like article",
+      "unlike": "Unlike article",
+      "commentPlaceholder": "Share a useful question or reflection",
+      "submitComment": "Submit for review",
+      "signInToComment": "Sign in to comment"
+    },
+    "resources": {
+      "searchLabel": "Search resources",
+      "category": "Category",
+      "allCategories": "All categories",
+      "type": "Type",
+      "allTypes": "All types",
+      "filter": "Filter",
+      "premium": "Premium",
+      "downloads": "downloads",
+      "open": "Open",
+      "saved": "Saved",
+      "save": "Save",
+      "download": "Download",
+      "ebookEyebrow": "Ebook library",
+      "ebookTitle": "Read and annotate focused career guides",
+      "ebookDescription": "The Django ebook catalogue is represented here as lightweight reader pages with personal notes.",
+      "readEbook": "Read ebook",
+      "back": "Back to resources",
+      "signInToSave": "Sign in to save",
+      "premiumRequired": "Premium resource",
+      "premiumRequiredBody": "Upgrade to Pro or Premium to open this resource.",
+      "upgrade": "Upgrade"
+    },
+    "ebooks": {
+      "back": "Back to resources",
+      "page": "Page",
+      "annotations": "Annotations",
+      "highlight": "Highlight",
+      "note": "Note",
+      "pageIndex": "Page index",
+      "color": "Colour",
+      "selectedText": "Selected text",
+      "noteText": "Personal note",
+      "saveAnnotation": "Save annotation",
+      "signInToAnnotate": "Sign in to annotate",
+      "myNotes": "My notes",
+      "delete": "Delete",
+      "emptyAnnotations": "No annotations yet."
+    },
+    "feedback": {
+      "title": "Feedback",
+      "bug": "Bug",
+      "feature": "Feature",
+      "improvement": "Improvement",
+      "other": "Other",
+      "titlePlaceholder": "Short title",
+      "messagePlaceholder": "What should we improve?",
+      "send": "Send feedback"
+    },
+    "admin": {
+      "title": "Moderation",
+      "subtitle": "Review content queues before they become public.",
+      "pendingComments": "Pending comments",
+      "openFeedback": "Open feedback",
+      "forumFlags": "Forum flags",
+      "blogModeration": "Blog comments",
+      "unknownPost": "Unknown post",
+      "approve": "Approve",
+      "reject": "Reject",
+      "emptyComments": "No pending comments.",
+      "feedbackQueue": "Feedback queue",
+      "emptyFeedback": "No open feedback.",
+      "forumFlagsTitle": "Forum flags",
+      "thread": "Thread",
+      "reply": "Reply",
+      "reviewed": "Reviewed",
+      "dismiss": "Dismiss",
+      "emptyFlags": "No new flags."
     }
   }
 }

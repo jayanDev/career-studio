@@ -56,7 +56,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id) {
         token.id = user.id;
         const profile = await ensureUserProfile(user.id);
+        const account = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { isStaff: true, isSuperuser: true },
+        });
         token.planTier = profile.planTier;
+        token.isStaff = Boolean(account?.isStaff || account?.isSuperuser);
       }
 
       return token;

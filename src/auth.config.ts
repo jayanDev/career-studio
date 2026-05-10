@@ -16,6 +16,7 @@ export const baseAuthConfig = {
       if (session.user) {
         session.user.id = token.id ?? token.sub ?? "";
         session.user.planTier = token.planTier ?? "basic";
+        session.user.isStaff = Boolean(token.isStaff);
       }
 
       return session;

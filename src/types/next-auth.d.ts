@@ -7,6 +7,7 @@ declare module "next-auth" {
     user: {
       id: string;
       planTier: PlanTier;
+      isStaff: boolean;
       name?: string | null;
       email?: string | null;
       image?: string | null;
@@ -18,5 +19,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     planTier?: PlanTier;
+    isStaff?: boolean;
   }
 }

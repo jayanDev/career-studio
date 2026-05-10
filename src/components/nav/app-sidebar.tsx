@@ -41,6 +41,7 @@ const sidebarItems = [
   ["Connections", "connections", Network],
   ["Mentorship", "mentorship", Handshake],
   ["Notifications", "notifications", Bell],
+  ["Admin", "admin", ShieldCheck],
   ["Billing", "billing", CreditCard],
   ["Settings", "settings", Settings],
 ] as const;

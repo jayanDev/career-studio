@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { LangSwitcher } from "@/components/lang-switcher";
 import { PlanTierBadge } from "@/components/account/plan-tier-badge";
+import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { AppSidebar } from "@/components/nav/app-sidebar";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
@@ -33,6 +34,7 @@ export default async function AuthenticatedLayout({
           </div>
         </header>
         <main className="p-4 lg:p-6">{children}</main>
+        <FeedbackWidget locale={locale} />
       </div>
     </div>
   );

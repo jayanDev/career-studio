@@ -15,6 +15,7 @@ const intlMiddleware = createMiddleware({
 
 const protectedRoutes = new Set([
   "/dashboard",
+  "/admin",
   "/resumes",
   "/ats",
   "/cover-letter",
@@ -75,6 +76,10 @@ export default auth((request) => {
   }
 
   const requiredPlan = Object.entries(planGates).find(([route]) => matchesRoute(appPath, route))?.[1];
+
+  if (matchesRoute(appPath, "/admin") && !request.auth?.user?.isStaff) {
+    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+  }
 
   if (requiredPlan) {
     const currentPlan = request.auth?.user?.planTier ?? "basic";
