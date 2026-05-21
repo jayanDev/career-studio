@@ -672,6 +672,9 @@
   },
   "Mentorship": "Mentorship",
   "Admin": "Admin",
+  "My Career Profile": "මගේ වෘත්තීය පැතිකඩ",
+  "Find Candidates": "අපේක්ෂකයින් සොයන්න",
+  "Shortlists": "තෝරාගත් ලැයිස්තු",
   "phase5": {
     "meta": {
       "messaging": {
@@ -903,7 +906,15 @@
       "reply": "Reply",
       "reviewed": "Reviewed",
       "dismiss": "Dismiss",
-      "emptyFlags": "No new flags."
+      "emptyFlags": "No new flags.",
+      "talentQueue": "කුසලතා පැතිකඩ පෝලිම",
+      "recruiterQueue": "බඳවා ගන්නන් සත්‍යාපන පෝලිම",
+      "emptyTalent": "සත්‍යාපනය නොකළ කුසලතා පැතිකඩ නැත.",
+      "emptyRecruiter": "සත්‍යාපනය නොකළ බඳවා ගන්නන්ගේ පැතිකඩ නැත.",
+      "verify": "සත්‍යාපනය කරන්න",
+      "unverify": "අවලංගු කරන්න",
+      "badge": "සත්‍යාපන ලාංඡනය (විකල්ප)",
+      "accessLevel": "ප්‍රවේශ මට්ටම"
     }
   }
 }

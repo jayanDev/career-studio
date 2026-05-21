@@ -1,6 +1,103 @@
 export type AtsScoreBand = "poor" | "fair" | "good" | "excellent";
 
+export interface AtsSimulatorContact {
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  linkedin?: string;
+  parsedOk: boolean;
+  issues: string[];
+}
+
+export interface AtsSimulatorExperience {
+  role?: string;
+  company?: string;
+  duration?: string;
+  description?: string;
+  parsedOk: boolean;
+}
+
+export interface AtsSimulatorEducation {
+  degree?: string;
+  institution?: string;
+  year?: string;
+  parsedOk: boolean;
+}
+
+export interface AtsSimulatorSkill {
+  name: string;
+  type: "hard" | "soft";
+}
+
+export interface AtsSimulator {
+  contact: AtsSimulatorContact;
+  summary: { parsedText?: string; parsedOk: boolean };
+  experience: AtsSimulatorExperience[];
+  education: AtsSimulatorEducation[];
+  skills: AtsSimulatorSkill[];
+  certifications: string[];
+  projects: string[];
+  missingRequiredSections: string[];
+}
+
+export interface BulletAudit {
+  text: string;
+  section: string;
+  actionVerb: boolean;
+  quantified: boolean;
+  xyzFormat: boolean;
+  pronounUsed: boolean;
+  tenseConsistency: "past" | "present" | "mixed" | "unknown";
+  lengthOk: boolean;
+  suggestions: string[];
+}
+
+export interface BulletAnalysis {
+  bullets: BulletAudit[];
+  impactScore: number;
+}
+
+export interface FormattingHazards {
+  hasMultiColumnCrossover: boolean;
+  hasTables: boolean;
+  imageCount: number;
+  hasHeaderText: boolean;
+  hasEmojis: boolean;
+  nonStandardFonts: boolean;
+  issues: string[];
+}
+
+export interface MissingKeywordWithHint {
+  keyword: string;
+  type: "hard" | "soft" | "cert" | "tool";
+  hint: string;
+}
+
+export interface ClicheBuzzwords {
+  found: string[];
+  scoreDeduction: number;
+}
+
+export interface ReadabilityMetrics {
+  fleschKincaidGrade: number;
+  label: string;
+}
+
+export interface SriLankaContext {
+  recognizedCompanies: string[];
+  recognizedUniversities: string[];
+  recognizedCerts: string[];
+  hasNicWarning: boolean;
+  phoneNormalized: boolean;
+  isBilingual: boolean;
+  languageHints: string[];
+  tips: string[];
+}
+
 export type AtsScoreResult = {
+  id?: string;
+  extractedText?: string;
   overall: number;
   format: number;
   content: number;
@@ -16,6 +113,17 @@ export type AtsScoreResult = {
   };
   jdKeywordMatchPct?: number;
   jdTopKeywords?: string[];
+  matchingKeywords?: string[];
+  missingKeywords?: string[];
+  
+  // Expanded metrics
+  atsSimulator?: AtsSimulator;
+  bulletAnalysis?: BulletAnalysis;
+  formattingHazards?: FormattingHazards;
+  missingKeywordsWithHints?: MissingKeywordWithHint[];
+  clicheBuzzwords?: ClicheBuzzwords;
+  readability?: ReadabilityMetrics;
+  sriLankaContext?: SriLankaContext;
 };
 
 export const SCORE_BANDS = [
@@ -33,194 +141,39 @@ const colors: Record<AtsScoreBand, "danger" | "warning" | "success" | "primary">
 };
 
 const actionVerbs = [
-  "achieved",
-  "built",
-  "created",
-  "delivered",
-  "developed",
-  "improved",
-  "increased",
-  "launched",
-  "led",
-  "managed",
-  "optimized",
-  "reduced",
-  "resolved",
-  "shipped",
-  "streamlined",
+  "achieved", "built", "created", "delivered", "developed", "improved", "increased",
+  "launched", "led", "managed", "optimized", "reduced", "resolved", "shipped", "streamlined",
+  "designed", "engineered", "formulated", "spearheaded", "implemented", "overhauled",
+  "coordinated", "executed", "accelerated", "pioneered", "negotiated", "established"
 ];
 
 const technicalSkills = [
-  "accounting",
-  "analytics",
-  "aws",
-  "azure",
-  "django",
-  "excel",
-  "figma",
-  "google analytics",
-  "javascript",
-  "marketing",
-  "node.js",
-  "postgresql",
-  "power bi",
-  "python",
-  "react",
-  "salesforce",
-  "seo",
-  "sql",
-  "supabase",
-  "typescript",
+  "accounting", "analytics", "aws", "azure", "django", "excel", "figma", "google analytics",
+  "javascript", "marketing", "node.js", "postgresql", "power bi", "python", "react",
+  "salesforce", "seo", "sql", "supabase", "typescript", "kubernetes", "docker", "next.js",
+  "git", "graphql", "tailwind", "devops", "machine learning", "java", "c#", "php"
 ];
 
 const softSkills = [
-  "communication",
-  "collaboration",
-  "customer service",
-  "leadership",
-  "mentoring",
-  "negotiation",
-  "problem solving",
-  "stakeholder management",
-  "teamwork",
+  "communication", "collaboration", "customer service", "leadership", "mentoring",
+  "negotiation", "problem solving", "stakeholder management", "teamwork", "agile", "scrum",
+  "time management", "adaptability", "critical thinking", "emotional intelligence"
 ];
 
 const stopWords = new Set([
-  "a",
-  "about",
-  "above",
-  "after",
-  "again",
-  "against",
-  "all",
-  "am",
-  "an",
-  "and",
-  "any",
-  "are",
-  "as",
-  "at",
-  "be",
-  "because",
-  "been",
-  "before",
-  "being",
-  "below",
-  "between",
-  "both",
-  "but",
-  "by",
-  "can",
-  "could",
-  "did",
-  "do",
-  "does",
-  "doing",
-  "down",
-  "during",
-  "each",
-  "few",
-  "for",
-  "from",
-  "further",
-  "had",
-  "has",
-  "have",
-  "having",
-  "he",
-  "her",
-  "here",
-  "hers",
-  "herself",
-  "him",
-  "himself",
-  "his",
-  "how",
-  "i",
-  "if",
-  "in",
-  "into",
-  "is",
-  "it",
-  "its",
-  "itself",
-  "just",
-  "me",
-  "more",
-  "most",
-  "my",
-  "myself",
-  "no",
-  "nor",
-  "not",
-  "now",
-  "of",
-  "off",
-  "on",
-  "once",
-  "only",
-  "or",
-  "other",
-  "our",
-  "ours",
-  "ourselves",
-  "out",
-  "over",
-  "own",
-  "same",
-  "she",
-  "should",
-  "so",
-  "some",
-  "such",
-  "than",
-  "that",
-  "the",
-  "their",
-  "theirs",
-  "them",
-  "themselves",
-  "then",
-  "there",
-  "these",
-  "they",
-  "this",
-  "those",
-  "through",
-  "to",
-  "too",
-  "under",
-  "until",
-  "up",
-  "very",
-  "was",
-  "we",
-  "were",
-  "what",
-  "when",
-  "where",
-  "which",
-  "while",
-  "who",
-  "whom",
-  "why",
-  "will",
-  "with",
-  "would",
-  "you",
-  "your",
-  "yours",
-  "yourself",
-  "yourselves",
-  "role",
-  "team",
-  "company",
-  "candidate",
-  "position",
-  "requirements",
-  "responsibilities",
-  "required",
-  "preferred",
+  "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
+  "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but",
+  "by", "can", "could", "did", "do", "does", "doing", "down", "during", "each", "few", "for",
+  "from", "further", "had", "has", "have", "having", "he", "her", "here", "hers", "herself",
+  "him", "himself", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just",
+  "me", "more", "most", "my", "myself", "no", "nor", "not", "now", "of", "off", "on", "once",
+  "only", "or", "other", "our", "ours", "ourselves", "out", "over", "own", "same", "she",
+  "should", "so", "some", "such", "than", "that", "the", "their", "theirs", "them",
+  "themselves", "then", "there", "these", "they", "this", "those", "through", "to", "too",
+  "under", "until", "up", "very", "was", "we", "were", "what", "when", "where", "which",
+  "while", "who", "whom", "why", "will", "with", "would", "you", "your", "yours", "yourself",
+  "yourselves", "role", "team", "company", "candidate", "position", "requirements",
+  "responsibilities", "required", "preferred"
 ]);
 
 export function interpretScore(overall: number) {
@@ -273,20 +226,21 @@ function scoreFormat(text: string): [number, string[]] {
   let score = 25;
   const issues: string[] = [];
 
-  if (/[^\x00-\x7F]+/.test(text)) {
+  if (/[^\x00-\x7F]+/.test(text) && !/[\u0D80-\u0DFF]/.test(text) && !/[\u0B80-\u0BFF]/.test(text)) {
+    // Flag other special non-ASCII text, but ignore Sinhala & Tamil blocks
     score -= 5;
     issues.push("Contains special characters that may not parse correctly");
   }
 
   const formattingChars = (text.match(/[●•►▸◆■□]/g) ?? []).length;
-  if (formattingChars > 10) {
+  if (formattingChars > 15) {
     score -= 5;
     issues.push("Excessive formatting symbols detected");
   }
 
-  if ((text.match(/\|/g) ?? []).length > 20) {
+  if ((text.match(/\|/g) ?? []).length > 15) {
     score -= 5;
-    issues.push("Table formatting detected - may not parse well in ATS");
+    issues.push("Table structures detected - may not parse well in some ATS parsers");
   }
 
   return [Math.max(0, score), issues];
@@ -424,6 +378,97 @@ export function scoreResumeText(text: string, jobDescription = ""): AtsScoreResu
   const [keywords, keywordIssues] = scoreKeywords(lower, jobDescription.toLowerCase());
   const [length, lengthIssues] = scoreLength(text);
   const issues = [...formatIssues, ...contentIssues, ...keywordIssues, ...lengthIssues];
+  
+  // 1. Contact Validation local checks
+  const emailMatch = text.match(/\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i);
+  const phoneMatch = text.match(/(?:\+94|0)?\s?7\d[\s-]?\d{3}[\s-]?\d{4}|\+?94\d{9}/);
+  const linkedinMatch = text.match(/linkedin\.com\/in\/[a-zA-Z0-9_-]+/i);
+  const locationMatch = text.match(/(colombo|kandy|galle|jaffna|negombo|gampaha|kurunegala|batticaloa|sri lanka)/i);
+
+  // Sri Lanka moat dictionaries
+  const slCompaniesList = ["dialog", "wso2", "mas holdings", "brandix", "hirdaramani", "ifs", "99x", "millenniumit", "john keells", "hutch", "hnb", "boc", "sampath bank", "lolc", "hemas", "hayleys", "cargills"];
+  const slUniversitiesList = ["moratuwa", "colombo", "peradeniya", "kelaniya", "sliit", "nsbm", "nibm", "iit", "apiit", "icbt", "curtin", "aod", "ucsc"];
+  const slCertsList = ["cima", "acca", "ca sri lanka", "cma", "aat", "slim", "ipm"];
+  const clicheWordsList = ["hardworking", "team player", "go-getter", "synergy", "results-oriented", "detail-oriented", "passionate", "fast learner"];
+
+  const recognizedCompanies = slCompaniesList.filter(c => lower.includes(c)).map(c => c.toUpperCase());
+  const recognizedUniversities = slUniversitiesList.filter(u => lower.includes(u)).map(u => u.toUpperCase());
+  const recognizedCerts = slCertsList.filter(cert => lower.includes(cert)).map(cert => cert.toUpperCase());
+  const foundCliches = clicheWordsList.filter(word => lower.includes(word));
+
+  const hasNicWarning = /(\b\d{9}[VvXx]\b|\b\d{12}\b)/.test(text);
+  if (hasNicWarning) {
+    issues.push("NIC warning: National Identity Card details found. Avoid sharing NIC on your public CV.");
+  }
+
+  const phoneNormalized = phoneMatch ? phoneMatch[0].startsWith("+94") || phoneMatch[0].startsWith("07") : false;
+
+  const isSinhala = /[\u0D80-\u0DFF]/.test(text);
+  const isTamil = /[\u0B80-\u0BFF]/.test(text);
+  const isBilingual = isSinhala || isTamil;
+
+  const languageHints = [];
+  if (isSinhala) languageHints.push("Sinhala unicode content detected");
+  if (isTamil) languageHints.push("Tamil unicode content detected");
+
+  const slTips = [];
+  if (hasNicWarning) slTips.push("Remove national identity card (NIC) numbers from your resume to protect your privacy.");
+  if (phoneMatch && !phoneNormalized) slTips.push("Normalise your phone number using the Sri Lankan standard (+947...) for automated parsers.");
+  if (recognizedUniversities.length > 0) slTips.push("Recognized Sri Lankan university. Boosts parsing validation accuracy.");
+
+  // Bullet level analysis approximation
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(l => l.length > 10);
+  const bulletsAudited: BulletAudit[] = [];
+  let actionVerbCount = 0;
+  let quantifiedCount = 0;
+  let xyzCount = 0;
+  let pronounsCount = 0;
+
+  for (const line of lines.slice(0, 15)) {
+    const wordCount = line.split(/\s+/).length;
+    if (wordCount < 5) continue;
+
+    const startsWithVerb = actionVerbs.some(v => line.toLowerCase().startsWith(v) || line.toLowerCase().split(/\s+/).slice(0, 2).includes(v));
+    const hasNum = /\b\d+%?\b/.test(line);
+    const hasXyzKeywords = /\b(by|result|resulting|led to|impact|improved|increased|achieved|reduced|optimized)\b/i.test(line);
+    const hasPronouns = /\b(i|me|my|we|our)\b/i.test(line);
+    
+    if (startsWithVerb) actionVerbCount++;
+    if (hasNum) quantifiedCount++;
+    if (hasXyzKeywords) xyzCount++;
+    if (hasPronouns) pronounsCount++;
+
+    bulletsAudited.push({
+      text: line,
+      section: line.toLowerCase().includes("university") || line.toLowerCase().includes("school") ? "Education" : "Experience",
+      actionVerb: startsWithVerb,
+      quantified: hasNum,
+      xyzFormat: hasXyzKeywords && startsWithVerb && hasNum,
+      pronounUsed: hasPronouns,
+      tenseConsistency: line.toLowerCase().includes("ed") ? "past" : "present",
+      lengthOk: wordCount >= 8 && wordCount <= 20,
+      suggestions: [
+        !startsWithVerb ? "Start with a strong action verb (e.g. Led, Designed, Overhauled)" : "",
+        !hasNum ? "Quantify the impact with numbers or percentages (e.g. 15% increase, $10k saved)" : "",
+        hasPronouns ? "Remove personal pronouns (I, me, my, we)" : ""
+      ].filter(Boolean)
+    });
+  }
+
+  const totalBullets = bulletsAudited.length || 1;
+  const impactScore = Math.round(
+    ((actionVerbCount / totalBullets) * 30) +
+    ((quantifiedCount / totalBullets) * 35) +
+    ((xyzCount / totalBullets) * 20) +
+    ((1 - pronounsCount / totalBullets) * 15)
+  );
+
+  // Readability
+  const wordCount = text.split(/\s+/).filter(Boolean).length || 1;
+  const sentenceCount = text.split(/[.!?]+/).filter(s => s.trim().length > 5).length || 1;
+  const syllablesEst = wordCount * 1.55;
+  const gradeLevel = Math.round(0.39 * (wordCount / sentenceCount) + 11.8 * (syllablesEst / wordCount) - 15.59);
+  
   const result: AtsScoreResult = {
     overall: format + content + keywords + length,
     format,
@@ -438,6 +483,85 @@ export function scoreResumeText(text: string, jobDescription = ""): AtsScoreResu
       keywords: { score: keywords, max: 25 },
       length: { score: length, max: 25 },
     },
+    atsSimulator: {
+      contact: {
+        name: text.split(/\n/)[0]?.trim() || "Applicant",
+        email: emailMatch?.[0],
+        phone: phoneMatch?.[0],
+        location: locationMatch?.[0] || "Sri Lanka",
+        linkedin: linkedinMatch?.[0],
+        parsedOk: !!(emailMatch && phoneMatch),
+        issues: [
+          !emailMatch ? "Email address not found or unparseable" : "",
+          !phoneMatch ? "Phone number not found or format unrecognized" : ""
+        ].filter(Boolean)
+      },
+      summary: {
+        parsedText: text.substring(0, 200) + "...",
+        parsedOk: text.length > 200
+      },
+      experience: bulletsAudited.filter(b => b.section === "Experience").map(b => ({
+        role: "Professional Role",
+        company: "Company Name",
+        description: b.text,
+        parsedOk: true
+      })),
+      education: bulletsAudited.filter(b => b.section === "Education").map(b => ({
+        degree: "Academic Degree",
+        institution: "Educational Institution",
+        parsedOk: true
+      })),
+      skills: [
+        ...technicalSkills.filter(s => lower.includes(s)).map(s => ({ name: s, type: "hard" as const })),
+        ...softSkills.filter(s => lower.includes(s)).map(s => ({ name: s, type: "soft" as const }))
+      ] as AtsSimulatorSkill[],
+      certifications: recognizedCerts,
+      projects: [],
+      missingRequiredSections: [
+        !/experience/i.test(text) ? "Experience" : "",
+        !/education/i.test(text) ? "Education" : "",
+        !/skills/i.test(text) ? "Skills" : ""
+      ].filter(Boolean)
+    },
+    bulletAnalysis: {
+      bullets: bulletsAudited,
+      impactScore
+    },
+    formattingHazards: {
+      hasMultiColumnCrossover: text.includes("   ") && text.length > 1000,
+      hasTables: text.includes("|") || text.includes("\t\t"),
+      imageCount: 0,
+      hasHeaderText: false,
+      hasEmojis: /[^\x00-\x7F\s\u0D80-\u0DFF\u0B80-\u0BFF]/.test(text),
+      nonStandardFonts: false,
+      issues: [
+        text.includes("|") ? "Contains vertical pipes (|), indicative of tables that break reading order." : "",
+        text.includes("   ") ? "Spaced column-like text blocks found. Multi-column resumes confuse ATS scanners." : ""
+      ].filter(Boolean)
+    },
+    missingKeywordsWithHints: jobDescription ? extractJdKeywords(jobDescription).slice(10).map(k => ({
+      keyword: k,
+      type: technicalSkills.includes(k) ? "hard" : softSkills.includes(k) ? "soft" : "tool",
+      hint: `Add this keyword to your Skills section or integrate it into a project description.`
+    })) : [],
+    clicheBuzzwords: {
+      found: foundCliches,
+      scoreDeduction: foundCliches.length * 2
+    },
+    readability: {
+      fleschKincaidGrade: Math.min(20, Math.max(1, gradeLevel)),
+      label: gradeLevel <= 10 && gradeLevel >= 7 ? "Ideal readability (Professional & Accessible)" : gradeLevel > 14 ? "Too dense (Highly academic/complex prose)" : "Simple prose"
+    },
+    sriLankaContext: {
+      recognizedCompanies,
+      recognizedUniversities,
+      recognizedCerts,
+      hasNicWarning,
+      phoneNormalized,
+      isBilingual,
+      languageHints,
+      tips: slTips
+    }
   };
 
   if (jobDescription.trim()) {

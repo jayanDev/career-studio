@@ -198,23 +198,59 @@ function KanbanCard({ application }: { application: JobApplicationCard }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: application.id });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
+  const reminder = useMemo(() => {
+    if (!application.followUpDate) return null;
+    if (["accepted", "rejected", "withdrew"].includes(application.status)) return null;
+
+    const followUpDate = new Date(application.followUpDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    followUpDate.setHours(0, 0, 0, 0);
+
+    const diffTime = followUpDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return {
+        label: "Follow-up Overdue",
+        className: "bg-rose-50 text-rose-700 border-rose-200 animate-pulse font-semibold",
+      };
+    } else if (diffDays === 0) {
+      return {
+        label: "Follow-up Today",
+        className: "bg-amber-50 text-amber-800 border-amber-300 font-semibold animate-pulse",
+      };
+    } else if (diffDays <= 3) {
+      return {
+        label: `Follow-up in ${diffDays}d`,
+        className: "bg-sky-50 text-sky-800 border-sky-200 font-medium",
+      };
+    }
+    return null;
+  }, [application.followUpDate, application.status]);
+
   return (
-    <article ref={setNodeRef} style={style} className="rounded-md border bg-white p-3 shadow-sm">
+    <article ref={setNodeRef} style={style} className="rounded-md border bg-white p-3 shadow-sm transition hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h4 className="font-medium text-neutral-950">{application.jobTitle}</h4>
-          <p className="mt-1 text-sm text-neutral-600">{application.companyName}</p>
+          <h4 className="font-medium text-neutral-950 text-sm">{application.jobTitle}</h4>
+          <p className="mt-1 text-xs text-neutral-500">{application.companyName}</p>
         </div>
-        <button type="button" className="text-neutral-400" {...attributes} {...listeners}>
+        <button type="button" className="text-neutral-400 cursor-grab active:cursor-grabbing" {...attributes} {...listeners} aria-label="Drag card">
           <GripVertical className="size-4" />
         </button>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Badge variant="outline" className={`rounded-md ${jobPriorityMeta[application.priority].className}`}>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <Badge variant="outline" className={`rounded-md text-[10px] py-0.5 px-1.5 ${jobPriorityMeta[application.priority].className}`}>
           {jobPriorityMeta[application.priority].label}
         </Badge>
-        {application.followUpDate ? (
-          <Badge variant="outline" className="rounded-md border-amber-200 text-amber-700">
+        {reminder ? (
+          <Badge variant="outline" className={`rounded-md text-[10px] py-0.5 px-1.5 flex items-center gap-1 border ${reminder.className}`}>
+            <CalendarClock className="size-3" />
+            {reminder.label}
+          </Badge>
+        ) : application.followUpDate ? (
+          <Badge variant="outline" className="rounded-md text-[10px] py-0.5 px-1.5 flex items-center gap-1 border-neutral-200 text-neutral-600 bg-neutral-50">
             <CalendarClock className="size-3" />
             {application.followUpDate}
           </Badge>

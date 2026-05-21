@@ -15,22 +15,77 @@ export function ResumePreview({
   content,
   className,
   visual = "document",
+  talentSlug,
+  locale = "en",
 }: {
   content: ResumeContent;
   className?: string;
   visual?: "document" | "graphic";
+  talentSlug?: string;
+  locale?: string;
 }) {
+  const printStyles = `
+    @media print {
+      html, body {
+        height: auto;
+        font-size: 11pt;
+        background: #fff !important;
+        color: #000 !important;
+      }
+      header, footer, nav, aside, form, button, .no-print, [role="button"] {
+        display: none !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 15mm;
+      }
+      body * {
+        visibility: hidden;
+      }
+      #resume-print-area, #resume-print-area * {
+        visibility: visible;
+      }
+      #resume-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+    }
+  `;
+
   return (
-    <article className={cn("min-h-[720px] rounded-lg border bg-white p-8 text-neutral-950 shadow-sm", className)}>
+    <article id="resume-print-area" className={cn("min-h-[720px] rounded-lg border bg-white p-8 text-neutral-950 shadow-sm", className)}>
+      <style dangerouslySetInnerHTML={{ __html: printStyles }} />
       {content.sectionOrder.map((section) => {
         if (section === "header") {
+          const profileUrl = typeof window !== "undefined" && talentSlug
+            ? `${window.location.origin}/${locale}/talent/${talentSlug}`
+            : "";
+          const qrCodeUrl = profileUrl
+            ? `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(profileUrl)}`
+            : null;
+
           return (
-            <header key={section} className={cn("border-b pb-5", visual === "graphic" && "rounded-md bg-teal-50 p-5")}>
-              <h2 className="text-3xl font-semibold tracking-tight">{content.header.fullName || "Your Name"}</h2>
-              <p className="mt-1 text-base text-teal-800">{content.header.title || "Target role"}</p>
-              <p className="mt-3 text-sm text-neutral-600">
-                {[content.header.email, content.header.phone, content.header.location, content.header.linkedin].filter(Boolean).join(" | ")}
-              </p>
+            <header key={section} className={cn("border-b pb-5 flex justify-between items-start gap-4", visual === "graphic" && "rounded-md bg-teal-50 p-5")}>
+              <div>
+                <h2 className="text-3xl font-semibold tracking-tight">{content.header.fullName || "Your Name"}</h2>
+                <p className="mt-1 text-base text-teal-800">{content.header.title || "Target role"}</p>
+                <p className="mt-3 text-sm text-neutral-600">
+                  {[content.header.email, content.header.phone, content.header.location, content.header.linkedin].filter(Boolean).join(" | ")}
+                </p>
+              </div>
+              {qrCodeUrl && (
+                <div className="flex flex-col items-center gap-1 shrink-0 text-center">
+                  <img src={qrCodeUrl} alt="Talent Profile QR Code" className="size-16 rounded border bg-white p-0.5 shadow-sm" />
+                  <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-wider">Scan Profile</span>
+                </div>
+              )}
             </header>
           );
         }

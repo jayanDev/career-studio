@@ -193,6 +193,10 @@ model User {
   sessions       Session[]
   profile        UserProfile?
   authenticators Authenticator[]
+  talentProfile  TalentProfile?
+  recruiterProfile RecruiterProfile?
+  talentContactRequests TalentContactRequest[]
+  shortlistedTalents   TalentShortlist[]
 
   @@map("django_users")
 }
@@ -1423,4 +1427,378 @@ model PromptTemplate {
   createdAt  DateTime @default(now())
 
   @@unique([feature, version])
+}
+
+model TalentProfile {
+  id                     String                @id @default(uuid()) @db.Uuid
+  userId                 String                @unique @db.Uuid
+  headline               String                @default("")
+  bio                    String                @default("")
+  coverImage             String?
+  profileImage           String?
+  city                   String                @default("")
+  country                String                @default("")
+  targetLocation         String                @default("")
+  isOpenToWork           Boolean               @default(true)
+  preferredJobTypes      Json                  @default("[]") // e.g., ["full_time", "remote"]
+  industry               String                @default("")
+  careerLevel            String                @default("mid") // student, fresher, junior, mid, senior, lead, executive
+  customSlug             String?               @unique
+  isPhonePublic          Boolean               @default(false)
+  isEmailPublic          Boolean               @default(false)
+  expectedSalary         String                @default("")
+  isExpectedSalaryPublic Boolean               @default(false)
+  noticePeriod           String                @default("")
+  nationality            String                @default("")
+  languages              Json                  @default("[]") // array of { name, level }
+  visaStatus             String                @default("")
+  availabilityDate       DateTime?
+  cvPath                 String?
+  cvFilename             String?
+  isCvPublic             Boolean               @default(false)
+  visibility             String                @default("public") // public, recruiters_only, private
+  completionScore        Int                   @default(0)
+  isVerified             Boolean               @default(false)
+  verificationBadge      String                @default("")
+  views                  Int                   @default(0)
+  searchAppearances      Int                   @default(0)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences           TalentExperience[]
+  educations            TalentEducation[]
+  skills                TalentSkill[]
+  projects              TalentProject[]
+  services              TalentService[]
+  portfolios            TalentPortfolio[]
+  certifications        TalentCertification[]
+  awards                TalentAward[]
+  contactRequests       TalentContactRequest[]
+  shortlists            TalentShortlist[]
+  recommendations       TalentRecommendation[]
+  viewsHistory          TalentProfileView[]
+  candidateBlocks       CandidateBlock[]
+  projectCandidates     ProjectCandidate[]
+
+  @@map("talent_profiles")
+}
+
+model TalentExperience {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  title           String
+  companyName     String
+  location        String         @default("")
+  employmentType  String         @default("full_time")
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrent       Boolean        @default(false)
+  description     String         @default("")
+  skillsUsed      Json           @default("[]") // array of strings
+  companyLogo     String?
+  sortOrder       Int            @default(0)
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_experiences")
+}
+
+model TalentEducation {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  institutionName String
+  degree          String
+  fieldOfStudy    String         @default("")
+  startDate       DateTime
+  endDate         DateTime?
+  isOngoing       Boolean        @default(false)
+  gpa             String         @default("")
+  description     String         @default("")
+  sortOrder       Int            @default(0)
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_educations")
+}
+
+model TalentSkill {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  name            String
+  category        String         @default("Technical") // Technical, Soft, Tools, Languages, Industry Knowledge
+  proficiency     String         @default("Intermediate") // Beginner, Intermediate, Advanced, Expert
+  yearsExperience Int?
+  isTop           Boolean        @default(false)
+  sortOrder       Int            @default(0)
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([talentProfileId, name])
+  @@map("talent_skills")
+}
+
+model TalentProject {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  title           String
+  projectType     String         @default("Personal") // Academic, Professional, Freelance, Personal
+  description     String         @default("")
+  role            String         @default("")
+  tools           Json           @default("[]") // array of strings
+  outcome         String         @default("")
+  projectUrl      String         @default("")
+  githubUrl       String         @default("")
+  demoVideoUrl    String         @default("")
+  imageUrl        String?
+  sortOrder       Int            @default(0)
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_projects")
+}
+
+model TalentService {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  title           String
+  description     String         @default("")
+  category        String         @default("")
+  pricing         String         @default("")
+  deliveryTime    String         @default("")
+  imageUrl        String?
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_services")
+}
+
+model TalentPortfolio {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  title           String
+  imageUrl        String?
+  fileUrl         String?
+  externalUrl     String         @default("")
+  category        String         @default("")
+  description     String         @default("")
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_portfolios")
+}
+
+model TalentCertification {
+  id                String         @id @default(uuid()) @db.Uuid
+  talentProfileId   String         @db.Uuid
+  name              String
+  issuingOrg        String
+  issueDate         DateTime?
+  expiryDate        DateTime?
+  credentialId      String         @default("")
+  credentialUrl     String         @default("")
+  verificationStatus String        @default("pending") // pending, verified, rejected
+
+  talentProfile     TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_certifications")
+}
+
+model TalentAward {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  title           String
+  issuer          String
+  dateReceived    DateTime?
+  description     String         @default("")
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_awards")
+}
+
+model Company {
+  id                 String             @id @default(uuid()) @db.Uuid
+  name               String
+  slug               String             @unique
+  website            String             @default("")
+  logo               String?
+  industry           String             @default("")
+  size               String             @default("") // e.g. "1-10", "11-50", "501+"
+  country            String             @default("Sri Lanka")
+  district           String             @default("") // SL district
+  about              String             @default("")
+  careersUrl         String             @default("")
+  isVerified         Boolean            @default(false)
+  verificationDomain String             @default("") // e.g. "wso2.com" to verify domain emails
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  recruiters         RecruiterProfile[]
+  candidateBlocks    CandidateBlock[]
+
+  @@map("companies")
+}
+
+model RecruiterProfile {
+  id              String         @id @default(uuid()) @db.Uuid
+  userId          String         @unique @db.Uuid
+  companyId       String?        @db.Uuid
+  title           String         @default("") // Recruiter's title, e.g. "Head of Talent"
+  workEmail       String         @default("") // Verified work email
+  companyName     String
+  companyLogo     String?
+  websiteUrl      String         @default("")
+  industry        String         @default("")
+  companySize     String         @default("")
+  location        String         @default("")
+  about           String         @default("")
+  isVerified      Boolean        @default(false)
+  accessLevel     String         @default("verified") // guest, verified, premium, enterprise
+  contactCredits  Int            @default(10) // outreach credits quota
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  savedSearches   SavedSearch[]
+  projects        RecruiterProject[]
+  outreachTemplates OutreachTemplate[]
+
+  @@map("recruiter_profiles")
+}
+
+model SavedSearch {
+  id                 String           @id @default(uuid()) @db.Uuid
+  recruiterId        String           @db.Uuid
+  name               String
+  filtersJson        Json             // Stores search filters as JSON
+  query              String           @default("") // Boolean/text query
+  alertFrequency     String           @default("never") // never, daily, weekly
+  lastAlertSentAt    DateTime?
+  createdAt          DateTime         @default(now())
+
+  recruiter          RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  @@map("saved_searches")
+}
+
+model RecruiterProject {
+  id           String             @id @default(uuid()) @db.Uuid
+  recruiterId  String             @db.Uuid
+  name         String
+  description  String             @default("")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  recruiter    RecruiterProfile   @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  candidates   ProjectCandidate[]
+
+  @@map("recruiter_projects")
+}
+
+model ProjectCandidate {
+  id               String           @id @default(uuid()) @db.Uuid
+  projectId        String           @db.Uuid
+  talentProfileId  String           @db.Uuid
+  stage            String           @default("new") // new, reviewed, contacted, replied, interview, offered, hired, rejected
+  notes            String           @default("")
+  rating           Int              @default(0) // 1-5 star rating
+  tags             Json             @default("[]") // array of strings
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  project          RecruiterProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  talentProfile    TalentProfile    @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, talentProfileId])
+  @@map("project_candidates")
+}
+
+model CandidateBlock {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  companyId       String         @db.Uuid
+  createdAt       DateTime       @default(now())
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([talentProfileId, companyId])
+  @@map("candidate_blocks")
+}
+
+model OutreachTemplate {
+  id           String           @id @default(uuid()) @db.Uuid
+  recruiterId  String           @db.Uuid
+  name         String
+  subject      String
+  body         String
+  createdAt    DateTime         @default(now())
+
+  recruiter    RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  @@map("outreach_templates")
+}
+
+model TalentContactRequest {
+  id              String         @id @default(uuid()) @db.Uuid
+  recruiterId     String         @db.Uuid // User ID of the recruiter
+  talentProfileId String         @db.Uuid
+  jobTitle        String
+  companyName     String
+  jobLocation     String         @default("")
+  salaryRange     String         @default("")
+  message         String         @default("")
+  status          String         @default("pending") // pending, accepted, declined
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  recruiter       User           @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_contact_requests")
+}
+
+model TalentShortlist {
+  id              String         @id @default(uuid()) @db.Uuid
+  recruiterId     String         @db.Uuid // User ID of the recruiter
+  talentProfileId String         @db.Uuid
+  notes           String         @default("")
+  folder          String         @default("General")
+  createdAt       DateTime       @default(now())
+
+  recruiter       User           @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([recruiterId, talentProfileId])
+  @@map("talent_shortlists")
+}
+
+model TalentRecommendation {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  authorName      String
+  authorTitle     String         @default("")
+  relationship    String         @default("") // e.g., "Worked with X in same team"
+  content         String
+  isApproved      Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_recommendations")
+}
+
+model TalentProfileView {
+  id              String         @id @default(uuid()) @db.Uuid
+  talentProfileId String         @db.Uuid
+  viewerId        String?        @db.Uuid // User ID of viewer if logged in
+  viewerName      String         @default("Anonymous Recruiter")
+  viewerCompany   String         @default("")
+  viewedAt        DateTime       @default(now())
+
+  talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("talent_profile_views")
 }

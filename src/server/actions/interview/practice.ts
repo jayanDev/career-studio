@@ -21,6 +21,17 @@ const submitAnswerSchema = z.object({
   timeTaken: z.number().int().min(0).max(7200).default(0),
 });
 
+const submitTurnSchema = z.object({
+  questionId: z.string().uuid(),
+  answer: z.string().trim().min(5).max(5000),
+  history: z.array(z.object({
+    role: z.enum(["interviewer", "candidate"]),
+    text: z.string()
+  })).default([]),
+  timeTaken: z.number().int().min(0).max(7200).default(0),
+  isFinalTurn: z.boolean().default(false)
+});
+
 export type InterviewFeedbackResult = z.infer<typeof feedbackSchema>;
 
 function fallbackFeedback(answer: string): InterviewFeedbackResult {
@@ -112,4 +123,69 @@ Be constructive, specific, and encouraging. Score fairly but honestly.`;
   });
 
   return feedback;
+}
+
+export async function submitInterviewTurnAction(input: z.infer<typeof submitTurnSchema>) {
+  const user = await requireUser();
+  const parsed = submitTurnSchema.parse(input);
+  const question = await prisma.interviewQuestion.findFirst({
+    where: { id: parsed.questionId, isActive: true },
+  });
+
+  if (!question) {
+    throw new Error("Question not found");
+  }
+
+  const conversationHistory = parsed.history
+    .map(m => `${m.role === "interviewer" ? "Interviewer" : "Candidate"}: ${m.text}`)
+    .join("\n");
+
+  const prompt = `You are an expert interview coach conducting a turn-based mock interview.
+The primary interview topic/question is: "${question.questionText}" (Category: ${question.category})
+
+Here is the conversation so far:
+${conversationHistory}
+Candidate's latest answer: "${parsed.answer}"
+
+${parsed.isFinalTurn 
+  ? "This is the final turn. Provide detailed feedback and final scores for their overall performance." 
+  : "Evaluate their latest answer. Provide feedback and then ask a natural, challenging follow-up question related to their response to keep the conversation going."}
+
+Respond in the exact JSON format:
+{
+  "feedback": {
+    "score": <number 1-10>,
+    "strengths": ["strength 1", "strength 2"],
+    "improvements": ["improvement 1", "improvement 2"],
+    "tips": ["specific tip 1", "specific tip 2"],
+    "sample_answer": "A brief model answer for comparison"
+  },
+  "followUpQuestion": ${parsed.isFinalTurn ? "null" : '"Next follow-up question as a string"'}
+}
+
+Keep followUpQuestion challenging, relevant to their experience, and constructive.`;
+
+  let responseJson = {
+    feedback: fallbackFeedback(parsed.answer),
+    followUpQuestion: parsed.isFinalTurn ? null : "Could you elaborate on how you handled the challenges in that situation?"
+  };
+
+  try {
+    const aiSchema = z.object({
+      feedback: feedbackSchema,
+      followUpQuestion: z.string().nullable()
+    });
+    const rawResult = await generateJsonWithGemini(prompt, aiSchema);
+    responseJson = aiSchema.parse(rawResult);
+  } catch (error) {
+    console.error("Gemini turn-based check failed:", error);
+  }
+
+  // Increment practice counter
+  await prisma.interviewQuestion.update({
+    where: { id: question.id },
+    data: { timesPracticed: { increment: 1 } },
+  });
+
+  return responseJson;
 }

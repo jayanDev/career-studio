@@ -17,6 +17,8 @@ import {
   Settings,
   ShieldCheck,
   Users,
+  User,
+  Search,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { PlanTier } from "@prisma/client";
@@ -31,6 +33,9 @@ const sidebarItems = [
   ["ATS Checker", "ats", ShieldCheck],
   ["Cover Letters", "cover-letter", PenLine],
   ["Graphical CV", "gcv", Presentation],
+  ["My Career Profile", "talent", User],
+  ["Find Candidates", "talent-pool", Search],
+  ["Shortlists", "talent-pool/shortlist", Network],
   ["Job Tracker", "job-tracker", BriefcaseBusiness],
   ["Interview", "interview", MessageSquare],
   ["Salary Insights", "salary", Gauge],

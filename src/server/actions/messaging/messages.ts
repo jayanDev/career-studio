@@ -178,3 +178,60 @@ export async function archiveConversationAction(locale: Locale, conversationId: 
 
   redirect(authPath(locale, "/messaging"));
 }
+
+export async function getConversationMessagesAction(locale: Locale, conversationId: string) {
+  const user = await requireUser(locale);
+  const parsedId = conversationIdSchema.parse(conversationId);
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: parsedId },
+  });
+
+  if (!conversation || !conversation.title.includes(user.id)) {
+    throw new Error("Unauthorized");
+  }
+
+  const messages = await prisma.message.findMany({
+    where: { conversationId: parsedId },
+    orderBy: { createdAt: "asc" },
+    take: 80,
+  });
+
+  const senderIds = Array.from(new Set(messages.map((m) => m.senderId)));
+  const [senders, attachments] = await Promise.all([
+    senderIds.length
+      ? prisma.user.findMany({
+          where: { id: { in: senderIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [],
+    messages.length
+      ? prisma.messageAttachment.findMany({
+          where: { messageId: { in: messages.map((m) => m.id) } },
+          orderBy: { createdAt: "asc" },
+        })
+      : [],
+  ]);
+
+  return {
+    messages: messages.map((m) => ({
+      id: m.id,
+      conversationId: m.conversationId,
+      senderId: m.senderId,
+      body: m.body,
+      isRead: m.isRead,
+      createdAt: m.createdAt.toISOString(),
+    })),
+    senders,
+    attachments: attachments.map((a) => ({
+      id: a.id,
+      messageId: a.messageId,
+      filename: a.filename,
+      filePath: a.filePath,
+      mimeType: a.mimeType,
+      fileSize: a.fileSize,
+      kind: a.kind,
+      createdAt: a.createdAt.toISOString(),
+    })),
+  };
+}

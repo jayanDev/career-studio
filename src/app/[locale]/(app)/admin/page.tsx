@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { FeedbackStatus } from "@prisma/client";
-import { Flag, MessageSquareWarning, ShieldCheck } from "lucide-react";
+import { Flag, MessageSquareWarning, ShieldCheck, Users, ShieldAlert } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
@@ -14,6 +14,8 @@ import {
   moderateBlogCommentAction,
   updateFeedbackModerationAction,
   updateForumFlagAction,
+  verifyTalentProfileAction,
+  verifyRecruiterProfileAction,
 } from "@/server/actions/admin/moderation";
 
 type AdminPageProps = {
@@ -43,7 +45,7 @@ export default async function AdminPage({ params }: AdminPageProps) {
     redirect(`/${locale}/dashboard`);
   }
 
-  const [comments, feedback, flags] = await Promise.all([
+  const [comments, feedback, flags, unverifiedTalents, unverifiedRecruiters] = await Promise.all([
     prisma.blogComment.findMany({
       where: { isApproved: false },
       orderBy: { createdAt: "asc" },
@@ -57,6 +59,18 @@ export default async function AdminPage({ params }: AdminPageProps) {
     prisma.forumFlag.findMany({
       where: { status: "new" },
       orderBy: { createdAt: "asc" },
+      take: 20,
+    }),
+    prisma.talentProfile.findMany({
+      where: { isVerified: false },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    prisma.recruiterProfile.findMany({
+      where: { isVerified: false },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
       take: 20,
     }),
   ]);
@@ -76,10 +90,12 @@ export default async function AdminPage({ params }: AdminPageProps) {
         <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">{t("subtitle")}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <QueueStat icon={MessageSquareWarning} label={t("pendingComments")} value={comments.length} />
         <QueueStat icon={ShieldCheck} label={t("openFeedback")} value={feedback.length} />
         <QueueStat icon={Flag} label={t("forumFlags")} value={flags.length} />
+        <QueueStat icon={Users} label={t("talentQueue")} value={unverifiedTalents.length} />
+        <QueueStat icon={ShieldAlert} label={t("recruiterQueue")} value={unverifiedRecruiters.length} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
@@ -155,6 +171,90 @@ export default async function AdminPage({ params }: AdminPageProps) {
               </article>
             ))}
             {flags.length === 0 ? <p className="text-sm text-neutral-500">{t("emptyFlags")}</p> : null}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white xl:col-span-2">
+          <CardHeader>
+            <CardTitle>{t("talentQueue")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            {unverifiedTalents.map((talent) => (
+              <article key={talent.id} className="rounded-md border bg-neutral-50 p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-neutral-950">
+                      {talent.user.firstName} {talent.user.lastName}
+                    </span>
+                    <span className="text-xs text-neutral-500">@{talent.user.username || "anonymous"}</span>
+                  </div>
+                  {talent.headline && (
+                    <p className="text-xs text-teal-800 font-medium mt-1">{talent.headline}</p>
+                  )}
+                  <p className="text-xs text-neutral-600 mt-2 line-clamp-2">
+                    {talent.bio || "No biography provided."}
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {talent.city ? `${talent.city}, ${talent.country}` : talent.country || "No location"}
+                  </p>
+                </div>
+                <form action={verifyTalentProfileAction.bind(null, locale, talent.id, true)} className="mt-4 flex gap-2">
+                  <input
+                    name="badge"
+                    type="text"
+                    placeholder={t("badge")}
+                    className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs placeholder:text-neutral-400 focus:border-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                  />
+                  <Button type="submit" size="sm" className="bg-teal-700 text-white hover:bg-teal-800">
+                    {t("verify")}
+                  </Button>
+                </form>
+              </article>
+            ))}
+            {unverifiedTalents.length === 0 ? <p className="text-sm text-neutral-500 col-span-2">{t("emptyTalent")}</p> : null}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white xl:col-span-2">
+          <CardHeader>
+            <CardTitle>{t("recruiterQueue")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            {unverifiedRecruiters.map((recruiter) => (
+              <article key={recruiter.id} className="rounded-md border bg-neutral-50 p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-neutral-950">{recruiter.companyName}</span>
+                    {recruiter.industry && <Badge variant="outline">{recruiter.industry}</Badge>}
+                  </div>
+                  <p className="text-xs text-neutral-600 mt-1">
+                    {recruiter.user.email}
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {recruiter.location || "No location provided."}
+                  </p>
+                  <p className="text-xs text-neutral-600 mt-2 line-clamp-2">
+                    {recruiter.about || "No description provided."}
+                  </p>
+                </div>
+                <form action={verifyRecruiterProfileAction.bind(null, locale, recruiter.id, true)} className="mt-4 flex gap-2">
+                  <select
+                    name="accessLevel"
+                    className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs focus:border-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                    defaultValue="verified"
+                  >
+                    <option value="guest">Guest</option>
+                    <option value="verified">Verified</option>
+                    <option value="premium">Premium</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                  <Button type="submit" size="sm" className="bg-teal-700 text-white hover:bg-teal-800">
+                    {t("verify")}
+                  </Button>
+                </form>
+              </article>
+            ))}
+            {unverifiedRecruiters.length === 0 ? <p className="text-sm text-neutral-500 col-span-2">{t("emptyRecruiter")}</p> : null}
           </CardContent>
         </Card>
       </div>

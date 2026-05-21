@@ -672,6 +672,9 @@
   },
   "Mentorship": "Mentorship",
   "Admin": "Admin",
+  "My Career Profile": "எனது தொழில் சுயவிவரம்",
+  "Find Candidates": "வேட்பாளர்களைக் கண்டறியவும்",
+  "Shortlists": "சுருக்கப்பட்ட பட்டியல்கள்",
   "phase5": {
     "meta": {
       "messaging": {
@@ -903,7 +906,15 @@
       "reply": "Reply",
       "reviewed": "Reviewed",
       "dismiss": "Dismiss",
-      "emptyFlags": "No new flags."
+      "emptyFlags": "No new flags.",
+      "talentQueue": "திறமை சுயவிவரங்கள் வரிசை",
+      "recruiterQueue": "பணியமர்த்துபவர் சரிபார்ப்பு வரிசை",
+      "emptyTalent": "சரிபார்க்கப்படாத திறமை சுயவிவரங்கள் இல்லை.",
+      "emptyRecruiter": "சரிபார்க்கப்படாத பணியமர்த்துபவர் சுயவிவரங்கள் இல்லை.",
+      "verify": "சரிபார்க்கவும்",
+      "unverify": "சரிபார்ப்பை நீக்கவும்",
+      "badge": "சரிபார்ப்பு பேட்ஜ் (விருப்பத்திற்குரியது)",
+      "accessLevel": "அணுகல் நிலை"
     }
   }
 }

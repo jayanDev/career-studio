@@ -22,6 +22,7 @@ export function GcvEditorClient({
   locale,
   resumeId,
   title,
+  talentSlug,
   initialContent,
   initialTheme,
   labels,
@@ -29,6 +30,7 @@ export function GcvEditorClient({
   locale: Locale;
   resumeId: string;
   title: string;
+  talentSlug?: string;
   initialContent: ResumeContent;
   initialTheme: GcvTheme;
   labels: {
@@ -104,9 +106,19 @@ export function GcvEditorClient({
                 onChange={(event) => setContent((current) => ({ ...current, skills: event.target.value.split("\n").map((line) => line.trim()).filter(Boolean) }))}
               />
             </div>
-            <Button type="submit" className="bg-teal-700 text-white hover:bg-teal-800">
-              {labels.save}
-            </Button>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" className="bg-teal-700 text-white hover:bg-teal-800">
+                {labels.save}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.print()}
+                className="border-teal-700 text-teal-700 hover:bg-teal-50"
+              >
+                Print PDF
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -115,6 +127,8 @@ export function GcvEditorClient({
         <ResumePreview
           content={content}
           visual="graphic"
+          talentSlug={talentSlug}
+          locale={locale}
           className={theme.density === "compact" ? "p-5" : theme.density === "spacious" ? "p-10" : "p-8"}
         />
       </div>

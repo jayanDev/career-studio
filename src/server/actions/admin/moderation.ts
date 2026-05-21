@@ -70,3 +70,69 @@ export async function updateForumFlagAction(locale: Locale, flagId: string, stat
 
   revalidatePath(`/${locale}/admin`);
 }
+
+export async function verifyTalentProfileAction(
+  locale: Locale,
+  profileId: string,
+  isVerified: boolean,
+  verificationBadgeOrFormData: string | FormData = ""
+) {
+  await requireStaff(locale);
+  
+  let verificationBadge = "";
+  if (typeof verificationBadgeOrFormData === "string") {
+    verificationBadge = verificationBadgeOrFormData;
+  } else if (verificationBadgeOrFormData instanceof FormData) {
+    verificationBadge = (verificationBadgeOrFormData.get("badge") as string) || "";
+  }
+
+  const parsed = z.object({
+    profileId: z.string().uuid(),
+    isVerified: z.boolean(),
+    verificationBadge: z.string(),
+  }).parse({ profileId, isVerified, verificationBadge });
+
+  await prisma.talentProfile.update({
+    where: { id: parsed.profileId },
+    data: {
+      isVerified: parsed.isVerified,
+      verificationBadge: parsed.verificationBadge,
+    },
+  });
+
+  revalidatePath(`/${locale}/admin`);
+}
+
+export async function verifyRecruiterProfileAction(
+  locale: Locale,
+  recruiterProfileId: string,
+  isVerified: boolean,
+  accessLevelOrFormData: string | FormData = "verified"
+) {
+  await requireStaff(locale);
+
+  let accessLevel = "verified";
+  if (typeof accessLevelOrFormData === "string") {
+    accessLevel = accessLevelOrFormData;
+  } else if (accessLevelOrFormData instanceof FormData) {
+    accessLevel = (accessLevelOrFormData.get("accessLevel") as string) || "verified";
+  }
+
+  const parsed = z.object({
+    recruiterProfileId: z.string().uuid(),
+    isVerified: z.boolean(),
+    accessLevel: z.string(),
+  }).parse({ recruiterProfileId, isVerified, accessLevel });
+
+  await prisma.recruiterProfile.update({
+    where: { id: parsed.recruiterProfileId },
+    data: {
+      isVerified: parsed.isVerified,
+      accessLevel: parsed.accessLevel,
+    },
+  });
+
+  revalidatePath(`/${locale}/admin`);
+}
+
+

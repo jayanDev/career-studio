@@ -667,6 +667,9 @@
   },
   "Mentorship": "Mentorship",
   "Admin": "Admin",
+  "My Career Profile": "My Career Profile",
+  "Find Candidates": "Find Candidates",
+  "Shortlists": "Shortlists",
   "phase5": {
     "meta": {
       "messaging": {
@@ -898,7 +901,15 @@
       "reply": "Reply",
       "reviewed": "Reviewed",
       "dismiss": "Dismiss",
-      "emptyFlags": "No new flags."
+      "emptyFlags": "No new flags.",
+      "talentQueue": "Talent Profiles Queue",
+      "recruiterQueue": "Recruiter Verification Queue",
+      "emptyTalent": "No unverified talent profiles.",
+      "emptyRecruiter": "No unverified recruiter profiles.",
+      "verify": "Verify",
+      "unverify": "Unverify",
+      "badge": "Verification Badge (optional)",
+      "accessLevel": "Access Level"
     }
   }
 }

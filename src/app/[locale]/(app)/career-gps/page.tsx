@@ -31,6 +31,71 @@ export async function generateMetadata({ params }: CareerGpsPageProps): Promise<
   };
 }
 
+async function getRecommendationsForSkills(skills: string[]) {
+  if (!skills || skills.length === 0) {
+    return { courses: [], mentors: [] };
+  }
+
+  try {
+    const courses = await prisma.course.findMany({
+      where: {
+        OR: skills.flatMap((skill) => [
+          { title: { contains: skill, mode: "insensitive" } },
+          { summary: { contains: skill, mode: "insensitive" } },
+          { tag1: { contains: skill, mode: "insensitive" } },
+          { tag2: { contains: skill, mode: "insensitive" } },
+        ]),
+      },
+      take: 4,
+    });
+
+    const mentors = await prisma.mentorProfile.findMany({
+      where: { isActive: true },
+    });
+
+    const userIds = mentors.map((m) => m.userId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        image: true,
+      },
+    });
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const mentorsWithUsers = mentors
+      .map((m) => ({
+        ...m,
+        user: userMap.get(m.userId)!,
+      }))
+      .filter((m) => m.user !== undefined);
+
+    const matchedMentors = mentorsWithUsers
+      .filter((mentor) => {
+        const bioText = mentor.bio.toLowerCase();
+        const expertiseList = Array.isArray(mentor.expertise)
+          ? (mentor.expertise as string[]).map((e) => e.toLowerCase())
+          : [];
+        return skills.some((skill) => {
+          const sLower = skill.toLowerCase();
+          return (
+            bioText.includes(sLower) ||
+            expertiseList.some((exp) => exp.includes(sLower) || sLower.includes(exp))
+          );
+        });
+      })
+      .slice(0, 4);
+
+    return { courses, mentors: matchedMentors };
+  } catch (error) {
+    console.error("Failed to fetch skill gap matches:", error);
+    return { courses: [], mentors: [] };
+  }
+}
+
 function single(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -59,6 +124,12 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
     : [];
   const selectedPlan = selectedPlanId ? plans.find((plan) => plan.id === selectedPlanId) ?? plans[0] : plans[0];
   const parsedPlan = selectedPlan ? careerGpsPlanResultSchema.safeParse(selectedPlan.planJson) : null;
+
+  const skillsToMatch = parsedPlan?.success
+    ? parsedPlan.data.skill_gaps.must_learn.map((gap) => gap.skill)
+    : [];
+  const recommendations = await getRecommendationsForSkills(skillsToMatch);
+
   const milestones = selectedPlan
     ? await prisma.careerGPSMilestone.findMany({
         where: { planId: selectedPlan.id },
@@ -131,6 +202,84 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
                     </div>
                   ))}
                 </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="text-base font-semibold text-neutral-900 flex items-center gap-2">
+                    <GraduationCap className="size-5 text-teal-700" />
+                    Recommended Learning & Mentors
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    Direct matched resources from Career Studio's directory to bridge your identified skill gaps.
+                  </p>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* Courses */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-neutral-800 text-xs uppercase tracking-wider">Matched Courses</h4>
+                      {recommendations.courses.length > 0 ? (
+                        <div className="space-y-2">
+                          {recommendations.courses.map((course) => (
+                            <div key={course.id} className="rounded-md border bg-white p-3.5 shadow-sm flex flex-col justify-between gap-2 hover:shadow transition">
+                              <div>
+                                <div className="font-medium text-neutral-900 text-xs">{course.title}</div>
+                                <div className="text-[10px] text-neutral-500 mt-0.5">{course.provider} • {course.deliveryMode || "Online"}</div>
+                              </div>
+                              {course.officialUrl && (
+                                <a
+                                  href={course.officialUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] text-teal-700 hover:text-teal-800 hover:underline font-semibold w-fit"
+                                >
+                                  View Course &rarr;
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neutral-400 italic">No direct courses match these gaps currently.</p>
+                      )}
+                    </div>
+
+                    {/* Mentors */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-neutral-800 text-xs uppercase tracking-wider">Expert Mentors</h4>
+                      {recommendations.mentors.length > 0 ? (
+                        <div className="space-y-2">
+                          {recommendations.mentors.map((mentor) => {
+                            const name = [mentor.user.firstName, mentor.user.lastName].filter(Boolean).join(" ") || mentor.user.email;
+                            const expertise = Array.isArray(mentor.expertise) ? (mentor.expertise as string[]) : [];
+                            return (
+                              <div key={mentor.id} className="rounded-md border bg-white p-3.5 shadow-sm flex flex-col gap-2 hover:shadow transition">
+                                <div>
+                                  <div className="font-medium text-neutral-900 text-xs">{name}</div>
+                                  <p className="text-[10px] text-neutral-600 mt-1 line-clamp-2">{mentor.bio}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {expertise.slice(0, 3).map((exp) => (
+                                    <Badge key={exp} variant="outline" className="text-[9px] py-0 px-1.5 bg-neutral-50 border-neutral-200">
+                                      {exp}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <a
+                                  href={`/${locale}/mentorship`}
+                                  className="text-[10px] text-teal-700 hover:text-teal-800 hover:underline font-semibold w-fit mt-1"
+                                >
+                                  Request Session &rarr;
+                                </a>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neutral-400 italic">No mentors matching these specific skills yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   {milestones.map((milestone) => (
                     <section key={milestone.id} className="rounded-lg border bg-neutral-50 p-4">

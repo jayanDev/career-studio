@@ -54,13 +54,21 @@ export default async function GcvEditorPage({ params, searchParams }: GcvEditorP
     redirect(`/${locale}/auth/sign-in`);
   }
 
-  const resume = await prisma.gCVResume.findFirst({
-    where: { id: resumeId, userId: session.user.id },
-  });
+  const [resume, talentProfile] = await Promise.all([
+    prisma.gCVResume.findFirst({
+      where: { id: resumeId, userId: session.user.id },
+    }),
+    prisma.talentProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { customSlug: true },
+    }),
+  ]);
 
   if (!resume) {
     notFound();
   }
+
+  const talentSlug = talentProfile?.customSlug || session.user.id;
 
   return (
     <div className="space-y-6">
@@ -72,6 +80,7 @@ export default async function GcvEditorPage({ params, searchParams }: GcvEditorP
         locale={locale}
         resumeId={resume.id}
         title={resume.title}
+        talentSlug={talentSlug}
         initialContent={parseResumeContent(resume.contentJson)}
         initialTheme={parseTheme(resume.themeJson)}
         labels={{

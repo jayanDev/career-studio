@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { Archive, Paperclip, Send } from "lucide-react";
+import { Archive, Send } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import { auth } from "@/lib/auth";
 import { displayName, otherDirectParticipant } from "@/lib/community";
 import { prisma } from "@/lib/prisma";
 import { archiveConversationAction, sendDirectMessageAction } from "@/server/actions/messaging/messages";
+import { ChatClient } from "@/components/feature/messaging/chat-client";
 
 type MessagingPageProps = {
   params: Promise<{ locale: string }>;
@@ -195,40 +195,38 @@ export default async function MessagingPage({ params, searchParams }: MessagingP
             ) : null}
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="min-h-[320px] space-y-3 rounded-md border bg-neutral-50 p-4">
-              {messages.map((message) => {
-                const isMine = message.senderId === currentUserId;
-                const files = attachmentsByMessage.get(message.id) ?? [];
-
-                return (
-                  <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[78%] rounded-md border p-3 ${isMine ? "bg-teal-700 text-white" : "bg-white text-neutral-950"}`}>
-                      <div className="text-xs opacity-80">{displayName(senderMap.get(message.senderId) ?? {})}</div>
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{message.body}</p>
-                      {files.map((file) => (
-                        <Badge key={file.id} variant="outline" className="mt-2 rounded-md bg-white text-neutral-700">
-                          <Paperclip className="size-3" />
-                          {file.filename}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              {messages.length === 0 ? <p className="text-center text-sm text-neutral-500">{t("emptyMessages")}</p> : null}
-            </div>
-
-            {activePartnerId ? (
-              <form action={sendAction} encType="multipart/form-data" className="grid gap-3">
-                <input type="hidden" name="recipientId" value={activePartnerId} />
-                <Textarea name="body" placeholder={t("replyPlaceholder")} required />
-                <Input name="attachment" type="file" />
-                <Button type="submit" className="w-fit bg-teal-700 text-white hover:bg-teal-800">
-                  <Send className="size-4" />
-                  {t("send")}
-                </Button>
-              </form>
-            ) : null}
+            <ChatClient
+              initialMessages={messages.map((m) => ({
+                id: m.id,
+                conversationId: m.conversationId,
+                senderId: m.senderId,
+                body: m.body,
+                isRead: m.isRead,
+                createdAt: m.createdAt.toISOString(),
+              }))}
+              initialSenders={senders}
+              initialAttachments={attachments.map((a) => ({
+                id: a.id,
+                messageId: a.messageId,
+                filename: a.filename,
+                filePath: a.filePath,
+                mimeType: a.mimeType,
+                fileSize: a.fileSize,
+                kind: a.kind,
+                createdAt: a.createdAt.toISOString(),
+              }))}
+              currentUserId={currentUserId}
+              activeConversationId={activeConversation?.id ?? ""}
+              activePartnerId={activePartnerId ?? ""}
+              locale={locale}
+              sendAction={sendAction}
+              translations={{
+                realtimeNote: t("realtimeNote"),
+                replyPlaceholder: t("replyPlaceholder"),
+                send: t("send"),
+                emptyMessages: t("emptyMessages"),
+              }}
+            />
           </CardContent>
         </Card>
       </div>
