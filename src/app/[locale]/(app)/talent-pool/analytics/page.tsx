@@ -116,7 +116,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
             <CardContent className="p-6">
               <p className="text-sm font-medium text-neutral-500 mb-1">Response Rate</p>
               <h3 className="text-3xl font-black text-neutral-900">{responseRate}%</h3>
-              <Progress value={responseRate} className="h-1.5 mt-3" indicatorColor="bg-blue-600" />
+              <Progress value={responseRate} className="h-1.5 mt-3" />
             </CardContent>
           </Card>
 
@@ -124,7 +124,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
             <CardContent className="p-6">
               <p className="text-sm font-medium text-neutral-500 mb-1">Acceptance Rate</p>
               <h3 className="text-3xl font-black text-teal-700">{acceptanceRate}%</h3>
-              <Progress value={acceptanceRate} className="h-1.5 mt-3" indicatorColor="bg-teal-600" />
+              <Progress value={acceptanceRate} className="h-1.5 mt-3" />
             </CardContent>
           </Card>
 
@@ -162,7 +162,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
                         <span className="font-medium text-neutral-800">{skill}</span>
                         <span className="text-neutral-500">{count} profiles</span>
                       </div>
-                      <Progress value={(count / totalMarket) * 100} className="h-2" indicatorColor="bg-indigo-500" />
+                      <Progress value={(count / totalMarket) * 100} className="h-2" />
                     </div>
                   </div>
                 ))}
