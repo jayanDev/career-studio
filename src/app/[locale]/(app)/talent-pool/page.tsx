@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Search, MapPin, ShieldCheck, Briefcase, Bookmark, Filter, ChevronRight, CheckCircle, Clock, GraduationCap, Code2, TextSearch } from "lucide-react";
+import { Search, MapPin, ShieldCheck, Briefcase, Bookmark, Filter, ChevronRight, CheckCircle, Clock, GraduationCap, Code2, TextSearch, BarChart3 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -163,6 +163,12 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
             <Link href={`/${locale}/talent-pool/company`}>
               <ShieldCheck className="size-4 text-emerald-600" />
               <span className="font-medium">Company Identity</span>
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-2 border-neutral-200 hover:bg-neutral-50 rounded-lg">
+            <Link href={`/${locale}/talent-pool/analytics`}>
+              <BarChart3 className="size-4 text-orange-600" />
+              <span className="font-medium">Analytics & Insights</span>
             </Link>
           </Button>
         </div>

@@ -201,23 +201,58 @@ export async function updateProfileCompletionScore(talentProfileId: string) {
 
   if (!profile) return 0;
 
-  let score = 0;
-  if (profile.profileImage) score += 10;
-  if (profile.headline) score += 10;
-  if (profile.bio) score += 10;
-  if (profile.city && profile.country) score += 10;
-  if (profile.experiences.length > 0) score += 15;
-  if (profile.educations.length > 0) score += 15;
-  if (profile.skills.length >= 3) score += 10;
-  if (profile.projects.length > 0) score += 10;
-  if (profile.cvPath) score += 10;
+  let baseScore = 0;
+  if (profile.profileImage) baseScore += 10;
+  if (profile.headline) baseScore += 10;
+  if (profile.bio) baseScore += 10;
+  if (profile.city && profile.country) baseScore += 10;
+  if (profile.experiences.length > 0) baseScore += 15;
+  if (profile.educations.length > 0) baseScore += 15;
+  if (profile.skills.length >= 3) baseScore += 10;
+  if (profile.projects.length > 0) baseScore += 10;
+  if (profile.cvPath) baseScore += 10;
+
+  // Maximum base score is 100. Let's add an ATS boost if they have run any ATS checks.
+  // We query all ATS check results belonging to this user's resumes
+  const atsResults = await prisma.aTSCheckResult.findMany({
+    where: {
+      version: {
+        resume: {
+          userId: profile.userId
+        }
+      }
+    },
+    select: { overallScore: true },
+    orderBy: { overallScore: 'desc' },
+    take: 1
+  });
+
+  let atsBoost = 0;
+  if (atsResults.length > 0 && atsResults[0].overallScore > 0) {
+    // Up to 15 bonus points based on their ATS readiness.
+    atsBoost = Math.round((atsResults[0].overallScore / 100) * 15);
+  }
+
+  // Recency multiplier
+  // Updated < 30 days = 1.0
+  // Updated < 90 days = 0.9
+  // Updated < 180 days = 0.8
+  // Older than 180 days = 0.7
+  const msSinceUpdate = Date.now() - profile.updatedAt.getTime();
+  const daysSinceUpdate = msSinceUpdate / (1000 * 60 * 60 * 24);
+  let recencyMultiplier = 1.0;
+  if (daysSinceUpdate > 180) recencyMultiplier = 0.7;
+  else if (daysSinceUpdate > 90) recencyMultiplier = 0.8;
+  else if (daysSinceUpdate > 30) recencyMultiplier = 0.9;
+
+  let finalScore = Math.min(100, Math.round((baseScore + atsBoost) * recencyMultiplier));
 
   await prisma.talentProfile.update({
     where: { id: talentProfileId },
-    data: { completionScore: score }
+    data: { completionScore: finalScore }
   });
 
-  return score;
+  return finalScore;
 }
 
 export async function updateTalentBaseInfo(data: z.infer<typeof baseProfileSchema>) {
