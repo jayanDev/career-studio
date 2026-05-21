@@ -1,10 +1,14 @@
 import { z } from "zod";
 
-export const resumeSectionKeys = ["header", "summary", "experience", "education", "skills", "projects", "certifications"] as const;
+export const resumeSectionKeys = [
+  "header", "summary", "experience", "education", "skills", 
+  "projects", "certifications", "languages", "awards", "volunteering"
+] as const;
 
 export type ResumeSectionKey = (typeof resumeSectionKeys)[number];
 
 export const resumeContentSchema = z.object({
+  mode: z.enum(["international", "local"]).default("international"),
   header: z.object({
     fullName: z.string().default(""),
     title: z.string().default(""),
@@ -62,6 +66,36 @@ export const resumeContentSchema = z.object({
       })
     )
     .default([]),
+  languages: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string().default(""),
+        proficiency: z.string().default(""),
+      })
+    )
+    .default([]),
+  awards: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string().default(""),
+        issuer: z.string().default(""),
+        date: z.string().default(""),
+      })
+    )
+    .default([]),
+  volunteering: z
+    .array(
+      z.object({
+        id: z.string(),
+        role: z.string().default(""),
+        organization: z.string().default(""),
+        startDate: z.string().default(""),
+        endDate: z.string().default(""),
+      })
+    )
+    .default([]),
   sectionOrder: z.array(z.enum(resumeSectionKeys)).default(["header", "summary", "experience", "education", "skills"]),
 });
 
@@ -73,6 +107,7 @@ export function createId() {
 
 export function defaultResumeContent(seed?: Partial<ResumeContent>): ResumeContent {
   return resumeContentSchema.parse({
+    mode: "international",
     header: {
       fullName: "",
       title: "",
@@ -107,6 +142,9 @@ export function defaultResumeContent(seed?: Partial<ResumeContent>): ResumeConte
     skills: ["Microsoft Excel", "Communication", "Problem Solving"],
     projects: [],
     certifications: [],
+    languages: [],
+    awards: [],
+    volunteering: [],
     sectionOrder: ["header", "summary", "experience", "education", "skills", "projects", "certifications"],
     ...seed,
   });

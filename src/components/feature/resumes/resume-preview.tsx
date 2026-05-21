@@ -9,6 +9,9 @@ const sectionTitles: Record<ResumeSectionKey, string> = {
   skills: "Skills",
   projects: "Projects",
   certifications: "Certifications",
+  languages: "Languages",
+  awards: "Awards",
+  volunteering: "Volunteering",
 };
 
 export function ResumePreview({
@@ -167,6 +170,44 @@ function renderSection(section: ResumeSectionKey, content: ResumeContent) {
             <div key={item.id}>
               <span className="font-medium">{item.name || "Certification"}</span>
               <span className="text-neutral-600"> {item.issuer}</span>
+            </div>
+          ))}
+        </div>
+      );
+    case "languages":
+      return (
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          {content.languages?.map((item) => (
+            <div key={item.id} className="flex gap-1.5 items-baseline">
+              <span className="font-medium text-neutral-800">{item.name || "Language"}</span>
+              <span className="text-neutral-500 text-xs text-muted-foreground">{item.proficiency}</span>
+            </div>
+          ))}
+        </div>
+      );
+    case "awards":
+      return (
+        <div className="space-y-3">
+          {content.awards?.map((item) => (
+            <div key={item.id} className="text-sm leading-6">
+              <div className="font-semibold">{item.name || "Award Name"}</div>
+              <div className="text-neutral-600">{[item.issuer, item.date].filter(Boolean).join(", ")}</div>
+            </div>
+          ))}
+        </div>
+      );
+    case "volunteering":
+      return (
+        <div className="space-y-4">
+          {content.volunteering?.map((item) => (
+            <div key={item.id}>
+              <div className="flex flex-wrap justify-between gap-2">
+                <div>
+                  <div className="font-semibold">{item.role || "Role"}</div>
+                  <div className="text-sm text-neutral-600">{item.organization || "Organization"}</div>
+                </div>
+                <div className="text-sm text-neutral-500">{[item.startDate, item.endDate].filter(Boolean).join(" - ")}</div>
+              </div>
             </div>
           ))}
         </div>

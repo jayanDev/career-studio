@@ -8,7 +8,9 @@ import type { Locale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { coverLetterContentSchema, defaultResumeContent, resumeContentSchema } from "@/lib/resume-content";
 import { generateJsonWithGemini } from "@/lib/ai";
+import { scoreResumeText } from "@/lib/ats-scoring";
 import { prisma } from "@/lib/prisma";
+import { resumeContentToText } from "@/lib/resume-content";
 import { createResumeDraft, getResumeForUser, saveResumeSnapshot } from "@/server/services/resumes/resume-service";
 
 const createResumeSchema = z.object({
@@ -108,6 +110,17 @@ export async function saveResumeContentAction(resumeId: string, content: z.infer
   await saveResumeSnapshot(resumeId, parsed, "Autosaved editor changes");
 
   return { ok: true, version: previousVersion + 1 };
+}
+
+export async function getLiveAtsScoreAction(content: z.infer<typeof resumeContentSchema>) {
+  const parsed = resumeContentSchema.parse(content);
+  const text = resumeContentToText(parsed);
+  const score = scoreResumeText(text);
+  
+  return {
+    overall: score.overall,
+    breakdown: score.breakdown,
+  };
 }
 
 export async function deleteResumeAction(locale: Locale, resumeId: string) {
