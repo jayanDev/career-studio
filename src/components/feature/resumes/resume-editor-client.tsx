@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createId, resumeSectionKeys, type ResumeContent, type ResumeSectionKey } from "@/lib/resume-content";
+import { slUniversities, slCompanies, slDistricts } from "@/lib/sl-data";
 import { getLiveAtsScoreAction, improveResumeTextAction, saveResumeContentAction } from "@/server/actions/resumes/create-resume";
 
 type ResumeEditorLabels = {
@@ -133,6 +134,20 @@ export function ResumeEditorClient({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
+      {content.mode === "local" && (
+        <>
+          <datalist id="sl-universities">
+            {slUniversities.map(u => <option key={u} value={u} />)}
+          </datalist>
+          <datalist id="sl-companies">
+            {slCompanies.map(c => <option key={c} value={c} />)}
+          </datalist>
+          <datalist id="sl-districts">
+            {slDistricts.map(d => <option key={d} value={d} />)}
+          </datalist>
+        </>
+      )}
+
       <div className="space-y-4">
         {/* Top toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border bg-white px-4 py-3 gap-3">
@@ -310,7 +325,12 @@ function renderEditor(
         {(["fullName", "title", "email", "phone", "location", "linkedin", "website"] as const).map((field) => (
           <div key={field} className="space-y-2">
             <Label htmlFor={field} className="capitalize">{field}</Label>
-            <Input id={field} value={content.header[field]} onChange={(event) => setHeaderField(field, event.target.value)} />
+            <Input 
+              id={field} 
+              value={content.header[field]} 
+              onChange={(event) => setHeaderField(field, event.target.value)} 
+              list={content.mode === "local" && field === "location" ? "sl-districts" : undefined}
+            />
           </div>
         ))}
       </div>
@@ -340,8 +360,8 @@ function renderEditor(
           <div key={item.id} className="rounded-md border bg-neutral-50 p-4">
             <div className="grid gap-3 md:grid-cols-2">
               <Input value={item.title} placeholder="Role title" onChange={(event) => updateExperience(index, "title", event.target.value, setContent)} />
-              <Input value={item.company} placeholder="Company" onChange={(event) => updateExperience(index, "company", event.target.value, setContent)} />
-              <Input value={item.location} placeholder="Location" onChange={(event) => updateExperience(index, "location", event.target.value, setContent)} />
+              <Input value={item.company} placeholder="Company" onChange={(event) => updateExperience(index, "company", event.target.value, setContent)} list={content.mode === "local" ? "sl-companies" : undefined} />
+              <Input value={item.location} placeholder="Location" onChange={(event) => updateExperience(index, "location", event.target.value, setContent)} list={content.mode === "local" ? "sl-districts" : undefined} />
               <Input value={`${item.startDate} - ${item.endDate}`} placeholder="Jan 2024 - Present" onChange={(event) => updateExperienceDates(index, event.target.value, setContent)} />
             </div>
             <div className="mt-4 space-y-2">
@@ -423,7 +443,7 @@ function renderEditor(
           <div key={item.id} className="grid gap-3 rounded-md border bg-neutral-50 p-4 md:grid-cols-2">
             <Input value={item.degree} placeholder="Degree" onChange={(event) => updateEducation(index, "degree", event.target.value, setContent)} />
             <Input value={item.field} placeholder="Field" onChange={(event) => updateEducation(index, "field", event.target.value, setContent)} />
-            <Input value={item.institution} placeholder="Institution" onChange={(event) => updateEducation(index, "institution", event.target.value, setContent)} />
+            <Input value={item.institution} placeholder="Institution" onChange={(event) => updateEducation(index, "institution", event.target.value, setContent)} list={content.mode === "local" ? "sl-universities" : undefined} />
             <Input value={`${item.startDate} - ${item.endDate}`} placeholder="2020 - 2024" onChange={(event) => updateEducationDates(index, event.target.value, setContent)} />
           </div>
         ))}
