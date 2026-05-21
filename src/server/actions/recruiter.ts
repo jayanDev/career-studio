@@ -322,6 +322,71 @@ export async function updateCandidateStage(id: string, stage: string) {
   return candidate;
 }
 
+export async function bulkUpdateCandidateStages(ids: string[], stage: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const candidates = await prisma.projectCandidate.findMany({
+    where: { id: { in: ids } }
+  });
+
+  if (candidates.length === 0) return { count: 0 };
+
+  const result = await prisma.projectCandidate.updateMany({
+    where: { id: { in: ids } },
+    data: { stage }
+  });
+
+  // Revalidate the first candidate's project (assuming they all belong to the same project)
+  revalidatePath(`/talent-pool/projects/${candidates[0].projectId}`);
+  
+  return { count: result.count };
+}
+
+export async function exportPipelineToCSV(projectId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const project = await prisma.recruiterProject.findUnique({
+    where: { id: projectId, recruiterId: session.user.id },
+    include: {
+      candidates: {
+        include: {
+          talentProfile: {
+            include: {
+              user: true,
+              experiences: { take: 1, orderBy: { startDate: "desc" } }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!project) throw new Error("Project not found.");
+
+  // Build CSV string
+  const headers = ["Candidate ID", "First Name", "Last Name", "Email", "Headline", "Current Role", "Current Company", "Location", "Pipeline Stage"];
+  const rows = project.candidates.map(c => {
+    const p = c.talentProfile;
+    const u = p.user;
+    const exp = p.experiences[0];
+    return [
+      c.id,
+      u.firstName,
+      u.lastName,
+      p.isEmailPublic ? u.email : "Hidden",
+      p.headline || "",
+      exp?.title || "",
+      exp?.companyName || "",
+      p.city ? `${p.city}, ${p.country}` : p.country,
+      c.stage
+    ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
+  });
+
+  return [headers.join(","), ...rows].join("\n");
+}
+
 // Request Contact details
 export async function sendContactRequest(data: z.infer<typeof contactRequestSchema>) {
   const session = await auth();

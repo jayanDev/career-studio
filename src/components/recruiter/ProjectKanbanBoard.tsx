@@ -5,8 +5,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { MoreVertical, Mail, ExternalLink, Calendar, MapPin, Building2, GripVertical } from "lucide-react";
 
-import { updateCandidateStage } from "@/server/actions/recruiter";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { exportPipelineToCSV, bulkUpdateCandidateStages, updateCandidateStage } from "@/server/actions/recruiter";
 
 const STAGES = [
   { id: "new", label: "Sourced", color: "bg-slate-100 border-slate-200 text-slate-800" },
@@ -22,6 +23,8 @@ export function ProjectKanbanBoard({ project, locale }: any) {
   const [candidates, setCandidates] = useState(project.candidates);
   const [isPending, startTransition] = useTransition();
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedId(id);
@@ -60,8 +63,96 @@ export function ProjectKanbanBoard({ project, locale }: any) {
     });
   };
 
+  const toggleSelection = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBulkMove = (stageId: string) => {
+    if (selectedIds.size === 0) return;
+    
+    const idsToMove = Array.from(selectedIds);
+    const previousCandidates = [...candidates];
+    
+    // Optimistic update
+    setCandidates((prev: any) => prev.map((c: any) => idsToMove.includes(c.id) ? { ...c, stage: stageId } : c));
+    setSelectedIds(new Set()); // clear selection
+
+    startTransition(async () => {
+      try {
+        await bulkUpdateCandidateStages(idsToMove, stageId);
+        toast.success(`Moved ${idsToMove.length} candidates`);
+      } catch (error) {
+        toast.error("Failed to move candidates");
+        setCandidates(previousCandidates);
+      }
+    });
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const csv = await exportPipelineToCSV(project.id);
+      
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `pipeline-${project.name.replace(/\s+/g, '-').toLowerCase()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Pipeline exported successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to export pipeline");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="flex h-full w-full overflow-x-auto p-6 gap-6 snap-x pb-8">
+    <div className="relative h-full w-full flex flex-col">
+      {/* Bulk Actions Toolbar */}
+      <div className="flex items-center justify-between px-6 py-3 border-b bg-white">
+        <div className="flex items-center gap-3">
+          {selectedIds.size > 0 ? (
+            <>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-none font-semibold">
+                {selectedIds.size} Selected
+              </Badge>
+              <div className="h-4 w-px bg-neutral-300 mx-1"></div>
+              <span className="text-sm font-medium text-neutral-600">Move to:</span>
+              <div className="flex items-center gap-1">
+                {STAGES.map(stage => (
+                  <button 
+                    key={stage.id}
+                    onClick={() => handleBulkMove(stage.id)}
+                    className="text-xs font-medium px-2 py-1 rounded hover:bg-neutral-100 border border-transparent hover:border-neutral-200 transition-colors"
+                  >
+                    {stage.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <span className="text-sm text-neutral-500 font-medium">Select candidates to perform bulk actions</span>
+          )}
+        </div>
+        <div>
+          <button 
+            onClick={handleExport} 
+            disabled={isExporting}
+            className="flex items-center gap-1.5 text-sm font-medium bg-neutral-900 hover:bg-neutral-800 text-white px-3 py-1.5 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+          >
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-x-auto p-6 gap-6 snap-x pb-8">
       {STAGES.map((stage) => {
         const stageCandidates = candidates.filter((c: any) => c.stage === stage.id);
         
@@ -110,7 +201,13 @@ export function ProjectKanbanBoard({ project, locale }: any) {
                           <p className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{profile.headline}</p>
                         </div>
                       </div>
-                      <GripVertical className="size-4 text-neutral-300 shrink-0 mt-1 cursor-grab" />
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          checked={selectedIds.has(cand.id)}
+                          onCheckedChange={() => toggleSelection(cand.id)}
+                        />
+                        <GripVertical className="size-4 text-neutral-300 shrink-0 mt-1 cursor-grab" />
+                      </div>
                     </div>
 
                     <div className="mt-3 pt-3 border-t border-neutral-100 space-y-2">
@@ -160,6 +257,7 @@ export function ProjectKanbanBoard({ project, locale }: any) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

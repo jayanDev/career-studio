@@ -213,13 +213,11 @@ export async function updateProfileCompletionScore(talentProfileId: string) {
   if (profile.cvPath) baseScore += 10;
 
   // Maximum base score is 100. Let's add an ATS boost if they have run any ATS checks.
-  // We query all ATS check results belonging to this user's resumes
+  // We query all ATS check results belonging to this user's CV documents
   const atsResults = await prisma.aTSCheckResult.findMany({
     where: {
-      version: {
-        resume: {
-          userId: profile.userId
-        }
+      cvDocument: {
+        userId: profile.userId
       }
     },
     select: { overallScore: true },
