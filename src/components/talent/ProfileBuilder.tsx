@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useState, startTransition } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
-import { 
-  Sparkles, Plus, Trash2, Award, Briefcase, GraduationCap, 
-  Wrench, FolderGit, HeartHandshake, FileText, Settings2, 
-  Check, Save, Eye, User, Globe, Lock, ShieldCheck, Upload, Languages
+import {
+  Sparkles, Plus, Trash2, Award, Briefcase, GraduationCap,
+  Wrench, FolderGit, HeartHandshake, FileText, Settings2,
+  Save, User, Globe, Lock, ShieldCheck, Upload
 } from "lucide-react";
-import type { 
-  TalentProfile, TalentExperience, TalentEducation, 
-  TalentSkill, TalentProject, TalentService, 
-  TalentPortfolio, TalentCertification, TalentAward 
+import type {
+  TalentProfile, TalentExperience, TalentEducation,
+  TalentSkill, TalentProject, TalentService,
+  TalentPortfolio, TalentCertification, TalentAward
 } from "@prisma/client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,15 +19,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsList } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 
-import { 
-  updateTalentBaseInfo, updateTalentPrivacy, updateTalentProfileImages,
+import {
+  updateTalentBaseInfo, updateTalentPrivacy,
   saveExperience, deleteExperience, saveEducation, deleteEducation,
   addSkill, deleteSkill, toggleTopSkill, saveProject, deleteProject,
-  saveService, deleteService, savePortfolio, deletePortfolio,
+  saveService, deleteService,
   saveCertification, deleteCertification, saveAward, deleteAward, saveCVPath
 } from "@/server/actions/talent";
 
@@ -48,7 +48,7 @@ interface ProfileBuilderProps {
 }
 
 export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) {
-  const [profile, setProfile] = useState(initialProfile);
+  const [profile] = useState(initialProfile);
   const [activeTab, setActiveTab] = useState("about");
   const [isAiLoading, setIsAiLoading] = useState(false);
 
@@ -85,17 +85,17 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
   const [isCertOpen, setIsCertOpen] = useState(false);
   const [isAwardOpen, setIsAwardOpen] = useState(false);
   const [isServOpen, setIsServOpen] = useState(false);
-  const [isPortOpen, setIsPortOpen] = useState(false);
+  // Portfolio modal not yet wired — state intentionally omitted.
 
   // Modal edit item states
   const [editExp, setEditExp] = useState<Partial<TalentExperience>>({});
   const [editEdu, setEditEdu] = useState<Partial<TalentEducation>>({});
   const [editProj, setEditProj] = useState<Partial<TalentProject>>({});
-  const [editSkill, setEditSkill] = useState<Partial<TalentSkill>>({});
+  const [, setEditSkill] = useState<Partial<TalentSkill>>({});
   const [editCert, setEditCert] = useState<Partial<TalentCertification>>({});
   const [editAward, setEditAward] = useState<Partial<TalentAward>>({});
   const [editServ, setEditServ] = useState<Partial<TalentService>>({});
-  const [editPort, setEditPort] = useState<Partial<TalentPortfolio>>({});
+  // Portfolio editor not yet wired.
 
   // AI suggestions list
   const [aiHeadlines, setAiHeadlines] = useState<string[]>([]);
@@ -140,7 +140,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
       });
       setAiHeadlines(suggestions);
       setIsHeadlineDialogOpen(true);
-    } catch (err) {
+    } catch {
       toast.error("Failed to generate AI headlines.");
     } finally {
       setIsAiLoading(false);
@@ -164,7 +164,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
       });
       setBaseInfo(prev => ({ ...prev, bio: summary }));
       toast.success("AI generated summary added to About section! Remember to save changes.");
-    } catch (err) {
+    } catch {
       toast.error("Failed to generate about summary.");
     } finally {
       setIsAiLoading(false);
@@ -185,7 +185,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
       });
       callback(bullets);
       toast.success("AI rewritten achievement bullets created!");
-    } catch (err) {
+    } catch {
       toast.error("Failed to polish details.");
     } finally {
       setIsAiLoading(false);
@@ -849,8 +849,8 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
               });
               setIsExpOpen(false);
               toast.success("Experience record saved!");
-            } catch (err: any) {
-              toast.error(err.message || "Failed to save experience");
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to save experience");
             }
           }} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -947,8 +947,8 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
               });
               setIsEduOpen(false);
               toast.success("Education record saved!");
-            } catch (err: any) {
-              toast.error(err.message || "Failed to save education");
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to save education");
             }
           }} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1015,8 +1015,8 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
               });
               setIsSkillOpen(false);
               toast.success("Skill added!");
-            } catch (err: any) {
-              toast.error(err.message || "Failed to add skill");
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to add skill");
             }
           }} className="space-y-4">
             <div className="space-y-1">
@@ -1075,8 +1075,8 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
               });
               setIsProjOpen(false);
               toast.success("Project saved!");
-            } catch (err: any) {
-              toast.error(err.message || "Failed to save project");
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to save project");
             }
           }} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1147,7 +1147,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
               });
               setIsServOpen(false);
               toast.success("Service record updated!");
-            } catch (err: any) {
+            } catch {
               toast.error("Failed to save service");
             }
           }} className="space-y-4">
@@ -1193,7 +1193,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
               });
               setIsCertOpen(false);
               toast.success("Certification saved!");
-            } catch (err: any) {
+            } catch {
               toast.error("Failed to save certification");
             }
           }} className="space-y-4">
@@ -1241,7 +1241,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
               });
               setIsAwardOpen(false);
               toast.success("Award saved!");
-            } catch (err: any) {
+            } catch {
               toast.error("Failed to save award");
             }
           }} className="space-y-4">

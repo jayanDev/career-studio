@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Brain, CheckCircle2, Compass, Globe2, GraduationCap, Lock, Route, Share2, Sparkles, Target, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { AiUnavailableBanner, isAiAvailable } from "@/components/ai-unavailable-banner";
 import { ShareToggleButton } from "@/components/share-toggle-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,7 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">{t("title")}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">{t("subtitle")}</p>
       </div>
+      {!isAiAvailable() ? <AiUnavailableBanner reason="no_key" /> : null}
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card className="bg-white">
@@ -337,9 +339,7 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
                   <div className="rounded-lg border bg-white p-5">
                     <h3 className="font-semibold text-neutral-950">Skill Overlap</h3>
                     <div className="mt-4 grid place-items-center">
-                      <div className="grid size-32 place-items-center rounded-full border-[18px] border-red-200" style={{ borderTopColor: "#0f766e", borderRightColor: "#0f766e" }}>
-                        <span className="text-3xl font-semibold text-neutral-950">{planData?.skill_overlap.overlap_pct ?? 0}%</span>
-                      </div>
+                      <SkillOverlapDonut value={planData?.skill_overlap.overlap_pct ?? 0} />
                     </div>
                     <div className="mt-4 grid gap-2 text-xs">
                       <TagList title="Transferable" items={planData?.skill_overlap.transferable ?? []} tone="green" />
@@ -522,6 +522,37 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function SkillOverlapDonut({ value }: { value: number }) {
+  // True SVG donut: stroke-dashoffset is computed against the circle's
+  // circumference so the green arc length actually matches `value`%.
+  const pct = Math.max(0, Math.min(100, value));
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const dash = (pct / 100) * circumference;
+  // Colour ramps from rose (low) through amber to emerald (high).
+  const stroke = pct >= 60 ? "#0f766e" : pct >= 30 ? "#d97706" : "#e11d48";
+  return (
+    <div className="relative grid size-32 place-items-center">
+      <svg viewBox="0 0 120 120" className="absolute inset-0" aria-hidden>
+        <circle cx="60" cy="60" r={radius} stroke="#fee2e2" strokeWidth="14" fill="none" />
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          stroke={stroke}
+          strokeWidth="14"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference - dash}`}
+          // Rotate so 0% sits at 12 o'clock and fills clockwise.
+          transform="rotate(-90 60 60)"
+        />
+      </svg>
+      <span className="relative text-3xl font-semibold text-neutral-950">{pct}%</span>
     </div>
   );
 }

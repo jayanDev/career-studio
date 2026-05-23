@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { AiUnavailableBanner, isAiAvailable } from "@/components/ai-unavailable-banner";
 import { AtsCheckerClient } from "@/components/feature/ats/ats-checker-client";
 import { Button } from "@/components/ui/button";
 import { defaultLocale, isLocale } from "@/i18n-config";
@@ -37,6 +38,7 @@ export default async function AtsPage({ params }: AtsPageProps) {
           <Link href={`/${locale}/ats/history`}>View history</Link>
         </Button>
       </div>
+      {!isAiAvailable() ? <AiUnavailableBanner reason="no_key" /> : null}
       <AtsCheckerClient
         labels={{
           uploadTitle: t("uploadTitle"),
