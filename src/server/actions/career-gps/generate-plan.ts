@@ -130,9 +130,22 @@ export async function generateCareerGpsPlanAction(locale: Locale, formData: Form
     secondary: parsed.secondaryRole,
     timeframe: parsed.timeframe,
   };
+  // Honour the language selector: Sinhala / Tamil users get the full plan
+  // generated in their language. This is one of the biggest SL moat
+  // differentiators called out in the roadmap and was previously stored
+  // but never sent to the model.
+  const languageInstruction =
+    parsed.languageMode === "si"
+      ? "RESPOND IN SINHALA (සිංහල). Identity statement, pathway summaries, milestone titles, task titles, reasons, and check-in prompts MUST be written in Sinhala using Unicode (no transliteration). Keep keys/enums in English."
+      : parsed.languageMode === "ta"
+        ? "RESPOND IN TAMIL (தமிழ்). Identity statement, pathway summaries, milestone titles, task titles, reasons, and check-in prompts MUST be written in Tamil using Unicode (no transliteration). Keep keys/enums in English."
+        : "RESPOND IN ENGLISH.";
+
   const prompt = `
         You are an expert World-Class Career Coach and Strategist.
         Create a personalized career roadmap for the user based on their Profile and Goals.
+
+        ${languageInstruction}
 
         USER PROFILE:
         - Story and CV Summary: ${story.slice(0, 7000)}

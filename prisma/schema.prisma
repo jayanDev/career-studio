@@ -398,6 +398,8 @@ model ATSCheckResult {
   suggestions       Json      @default("[]")
   isUnlocked        Boolean   @default(false)
   unlockedAt        DateTime?
+  shareToken        String?   @unique
+  sharedAt          DateTime?
   createdAt         DateTime  @default(now())
 
   cvDocument CVDocument @relation(fields: [cvDocumentId], references: [id], onDelete: Cascade)
@@ -697,11 +699,13 @@ model CareerGPSGoal {
 }
 
 model CareerGPSPlan {
-  id        String   @id @default(uuid()) @db.Uuid
-  sessionId String   @unique @db.Uuid
-  planJson  Json     @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(uuid()) @db.Uuid
+  sessionId   String    @unique @db.Uuid
+  planJson    Json      @default("{}")
+  shareToken  String?   @unique
+  sharedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model CareerGPSMilestone {
@@ -1801,4 +1805,19 @@ model TalentProfileView {
   talentProfile   TalentProfile  @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
 
   @@map("talent_profile_views")
+}
+
+model ShareView {
+  id           String   @id @default(uuid()) @db.Uuid
+  type         String   // "resume" | "cover-letter" | "gcv" | "linkedin" | "career-gps" | "ats"
+  itemId       String   // the entity uuid being shared
+  ownerId      String?  @db.Uuid
+  visitorHash  String   // sha256(ip + user-agent)
+  referrer     String   @default("direct")
+  userAgent    String   @default("")
+  viewedAt     DateTime @default(now())
+
+  @@index([type, itemId])
+  @@index([ownerId])
+  @@map("share_views")
 }

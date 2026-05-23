@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { scoreResumeText, type AtsScoreResult } from "@/lib/ats-scoring";
+import { extractResume } from "@/lib/ats/extract";
 import { prisma } from "@/lib/prisma";
 import { assertFileSize, detectFileMime, resumeMimeTypes } from "@/lib/validators";
 import { geminiModel } from "@/lib/ai";
@@ -165,7 +166,19 @@ export async function scoreAtsResumeAction(formData: FormData): Promise<AtsScore
     fileSize = uploaded.size;
     fileType = uploaded.name.split(".").pop()?.toLowerCase() ?? "file";
     if (!resumeText.trim()) {
-      resumeText = buffer.toString("utf8").replace(/[^\x09\x0a\x0d\x20-\x7E]+/g, " ").replace(/\s+/g, " ").trim();
+      // Real PDF / DOCX / plain-text extraction via unpdf + mammoth.
+      // Falls back to the lossy buffer string only as a last resort, and
+      // logs a warning so we know when that fired.
+      try {
+        const extracted = await extractResume(buffer, {
+          mime: detectedMime || browserMime,
+          filename: uploaded.name,
+        });
+        resumeText = extracted.text;
+      } catch (extractError) {
+        console.warn("[ats] structured extraction failed, falling back to buffer-to-utf8:", extractError);
+        resumeText = buffer.toString("utf8").replace(/[^\x09\x0a\x0d\x20-\x7E]+/g, " ").replace(/\s+/g, " ").trim();
+      }
     }
   }
 

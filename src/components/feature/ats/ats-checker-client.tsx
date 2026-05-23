@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { interpretScore, type AtsScoreResult } from "@/lib/ats-scoring";
 import { scoreAtsResumeAction } from "@/server/actions/ats/score-resume";
+import { setAtsShareAction } from "@/server/actions/ats/share";
 
 export function AtsCheckerClient({
   labels,
@@ -192,12 +193,21 @@ export function AtsCheckerClient({
     setSuggestedRewrites([]);
   }
 
-  function handleShareReport() {
+  async function handleShareReport() {
     if (!result?.id) return;
-    const shareUrl = `${window.location.origin}/en/ats/share/${result.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    setIsShared(true);
-    setTimeout(() => setIsShared(false), 2000);
+    try {
+      // Toggle the public share token on the server. Returns a freshly
+      // generated UUID the recipient URL must carry as `?token=` for the
+      // public page to render — without it the page is 404.
+      const share = await setAtsShareAction(result.id, true);
+      if (!share.shareToken) return;
+      const shareUrl = `${window.location.origin}/en/ats/share/${result.id}?token=${share.shareToken}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setIsShared(true);
+      setTimeout(() => setIsShared(false), 2000);
+    } catch (error) {
+      console.warn("[ats] share failed:", error);
+    }
   }
 
   const interpretation = result ? interpretScore(result.overall) : null;
