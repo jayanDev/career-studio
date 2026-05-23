@@ -34,9 +34,17 @@ export default async function AtsPage({ params }: AtsPageProps) {
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">{t("title")}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">{t("subtitle")}</p>
         </div>
-        <Button asChild variant="outline">
-          <Link href={`/${locale}/ats/history`}>View history</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/${locale}/ats/multi-jd`}>Multi-JD</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/${locale}/ats/bulk`}>Bulk</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/${locale}/ats/history`}>History</Link>
+          </Button>
+        </div>
       </div>
       {!isAiAvailable() ? <AiUnavailableBanner reason="no_key" /> : null}
       <AtsCheckerClient
