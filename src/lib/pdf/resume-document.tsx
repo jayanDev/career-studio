@@ -14,6 +14,7 @@ const styles = StyleSheet.create({
   muted: { color: "#525252" },
   bullet: { marginLeft: 10, marginBottom: 3 },
   paragraph: { marginBottom: 8 },
+  skillBarTrack: { height: 3, backgroundColor: "#e5e5e5", marginTop: 3, width: 110 },
 });
 
 export function ResumePdfDocument({ content }: { content: ResumeContent }) {
@@ -26,6 +27,12 @@ export function ResumePdfDocument({ content }: { content: ResumeContent }) {
           <Text style={styles.meta}>
             {[content.header.email, content.header.phone, content.header.location, content.header.linkedin].filter(Boolean).join(" | ")}
           </Text>
+          {content.mode === "local" ? (
+            <Text style={styles.meta}>
+              {[content.header.street, content.header.district, content.header.postalCode].filter(Boolean).join(" | ")}
+              {content.header.expectedSalary ? ` | Expected ${content.header.expectedSalary} ${content.header.salaryPeriod}` : ""}
+            </Text>
+          ) : null}
         </View>
         {content.summary ? (
           <View style={styles.section}>
@@ -56,8 +63,66 @@ export function ResumePdfDocument({ content }: { content: ResumeContent }) {
         </View>
         <View style={styles.section}>
           <Text style={styles.heading}>SKILLS</Text>
-          <Text>{content.skills.join(", ")}</Text>
+          {content.settings?.showSkillRatings && content.skillRatings.length ? (
+            content.skillRatings.map((skill) => (
+              <View key={skill.id} style={styles.row}>
+                <Text>{skill.name} ({skill.rating}/5)</Text>
+              </View>
+            ))
+          ) : (
+            <Text>{content.skills.join(", ")}</Text>
+          )}
         </View>
+        {content.projects.length ? (
+          <View style={styles.section}>
+            <Text style={styles.heading}>PROJECTS</Text>
+            {content.projects.map((item) => (
+              <View key={item.id} style={styles.row}>
+                <Text style={styles.strong}>{item.name}</Text>
+                <Text>{item.description}</Text>
+                <Text style={styles.muted}>{item.technologies.join(", ")}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {content.certifications.length ? (
+          <View style={styles.section}>
+            <Text style={styles.heading}>CERTIFICATIONS</Text>
+            {content.certifications.map((item) => (
+              <Text key={item.id}>{[item.name, item.issuer, item.date].filter(Boolean).join(" - ")}</Text>
+            ))}
+          </View>
+        ) : null}
+        {content.languages.length ? (
+          <View style={styles.section}>
+            <Text style={styles.heading}>LANGUAGES</Text>
+            <Text>{content.languages.map((item) => [item.name, item.proficiency].filter(Boolean).join(" - ")).join(", ")}</Text>
+          </View>
+        ) : null}
+        {content.awards.length ? (
+          <View style={styles.section}>
+            <Text style={styles.heading}>AWARDS</Text>
+            {content.awards.map((item) => (
+              <Text key={item.id}>{[item.name, item.issuer, item.date].filter(Boolean).join(" - ")}</Text>
+            ))}
+          </View>
+        ) : null}
+        {content.publications.length ? (
+          <View style={styles.section}>
+            <Text style={styles.heading}>PUBLICATIONS</Text>
+            {content.publications.map((item) => (
+              <Text key={item.id}>{[item.title, item.publisher, item.date, item.url].filter(Boolean).join(" - ")}</Text>
+            ))}
+          </View>
+        ) : null}
+        {!content.settings?.hideReferences && content.references.length ? (
+          <View style={styles.section}>
+            <Text style={styles.heading}>REFERENCES</Text>
+            {content.references.map((item) => (
+              <Text key={item.id}>{[item.name, item.title, item.organization, item.phone, item.email].filter(Boolean).join(" - ")}</Text>
+            ))}
+          </View>
+        ) : null}
       </Page>
     </Document>
   );
@@ -67,7 +132,7 @@ export function CoverLetterPdfDocument({ content }: { content: CoverLetterConten
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {[content.headerContact, content.recipientDetails, content.opener].filter(Boolean).map((part) => (
+        {[content.subject ? `Subject: ${content.subject}` : "", content.headerContact, content.recipientDetails, content.opener].filter(Boolean).map((part) => (
           <Text key={part} style={styles.paragraph}>{part}</Text>
         ))}
         {content.bodyParagraphs.map((paragraph) => (
@@ -81,7 +146,7 @@ export function CoverLetterPdfDocument({ content }: { content: CoverLetterConten
             ))}
           </View>
         ) : null}
-        {[content.closing, content.signature].filter(Boolean).map((part) => (
+        {[content.salaryExpectation, content.closing, content.signature].filter(Boolean).map((part) => (
           <Text key={part} style={styles.paragraph}>{part}</Text>
         ))}
       </Page>

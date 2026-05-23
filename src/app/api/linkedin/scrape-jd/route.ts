@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
+import { extractStructuredJdKeywords } from "@/lib/linkedin-optimization";
 
 const extractedKeywordsSchema = z.object({
   hard_skills: z.array(z.string()).default([]),
@@ -62,11 +63,12 @@ Output ONLY the clean, structured job description text, formatted cleanly.`,
 
     const jdText = response.text;
 
-    // Use Gemini to extract structured keywords
-    const keywordsResponse = await generateObject({
-      model: geminiModel,
-      schema: extractedKeywordsSchema,
-      prompt: `Analyze the following job description text.
+    let keywords = extractStructuredJdKeywords(jdText);
+    try {
+      const keywordsResponse = await generateObject({
+        model: geminiModel,
+        schema: extractedKeywordsSchema,
+        prompt: `Analyze the following job description text.
 Extract the key skills and keywords categorized into:
 1. hard_skills: Core technical skills, engineering methodologies, specialized business skills.
 2. soft_skills: Interpersonal skills, communication, leadership, problem solving.
@@ -77,11 +79,15 @@ Extract the key skills and keywords categorized into:
 Job Description Text:
 ${jdText}
 `,
-    });
+      });
+      keywords = keywordsResponse.object;
+    } catch {
+      // Keep deterministic extraction if Gemini is unavailable.
+    }
 
     return NextResponse.json({
       jobDescription: jdText,
-      keywords: keywordsResponse.object,
+      keywords,
     });
   } catch (error) {
     console.error("LinkedIn job description scraping failed:", error);

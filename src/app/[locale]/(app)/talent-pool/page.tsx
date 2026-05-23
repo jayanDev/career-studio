@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Search, MapPin, ShieldCheck, Briefcase, Bookmark, Filter, ChevronRight, CheckCircle, Clock, GraduationCap, Code2, TextSearch, BarChart3 } from "lucide-react";
+import { Search, MapPin, ShieldCheck, Briefcase, Bookmark, Filter, ChevronRight, Clock, GraduationCap, Code2, TextSearch, BarChart3 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { slCertifications, slCompanies, slDistricts, slUniversities } from "@/lib/sl-data";
+import { publicCandidateName, recruiterPlans, slIndustrySearchPacks } from "@/lib/talent-pool";
 import { searchTalentPool } from "@/server/actions/recruiter";
 import { SaveSearchButton } from "@/components/talent-pool/SaveSearchButton";
 
@@ -20,6 +23,7 @@ type TalentPoolPageProps = {
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  void params;
   return {
     title: "Find Top Talent - Career Studio Marketplace",
     description: "Search and discover verified candidates, engineers, designers and specialists in Sri Lanka.",
@@ -113,22 +117,42 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
   const careerLevel = typeof queryObj.careerLevel === "string" ? queryObj.careerLevel : undefined;
   const isOpenToWork = queryObj.isOpenToWork === "true" ? true : undefined;
   const verifiedOnly = queryObj.verifiedOnly === "true" ? true : undefined;
+  const noticePeriod = typeof queryObj.noticePeriod === "string" ? queryObj.noticePeriod : undefined;
+  const salaryMax = typeof queryObj.salaryMax === "string" && queryObj.salaryMax ? Number(queryObj.salaryMax) : undefined;
+  const language = typeof queryObj.language === "string" ? queryObj.language : undefined;
+  const openTo = typeof queryObj.openTo === "string" ? queryObj.openTo : undefined;
+  const remote = queryObj.remote === "true" ? true : undefined;
+  const company = typeof queryObj.company === "string" ? queryObj.company : undefined;
+  const certification = typeof queryObj.certification === "string" ? queryObj.certification : undefined;
+  const sort = typeof queryObj.sort === "string" ? queryObj.sort : undefined;
+  const jdText = typeof queryObj.jdText === "string" ? queryObj.jdText : undefined;
+  const pack = typeof queryObj.pack === "string" ? queryObj.pack : undefined;
   
   // Sri Lankan Moat parameters
   const district = typeof queryObj.district === "string" ? queryObj.district : undefined;
   const university = typeof queryObj.university === "string" ? queryObj.university : undefined;
 
   // Execute search
+  const packQuery = slIndustrySearchPacks.find((item) => item.slug === pack)?.keywords.join(" OR ");
   const candidates = await searchTalentPool({
     query: queryStr,
     title,
-    skill,
+    skill: skill || packQuery,
     location,
     careerLevel,
     isOpenToWork,
     verifiedOnly,
     district,
-    university
+    university,
+    noticePeriod,
+    salaryMax,
+    language,
+    openTo,
+    remote,
+    company,
+    certification,
+    sort,
+    jdText,
   });
 
   return (
@@ -189,23 +213,57 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
         </Card>
       )}
 
+      <div className="grid gap-3 md:grid-cols-3">
+        {recruiterPlans.map((plan) => (
+          <Card key={plan.slug} className={`bg-white ${plan.slug === "starter" ? "border-teal-200" : "border-neutral-200"}`}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-neutral-900">{plan.name}</h2>
+                  <p className="mt-1 text-xs text-neutral-500">{plan.credits === -1 ? "Unlimited" : plan.credits} credits / month</p>
+                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  {plan.priceLkr ? `Rs ${plan.priceLkr.toLocaleString("en-LK")}` : "Custom"}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* Primary Search Bar (Boolean/Keyword) */}
       <Card className="bg-white border shadow-sm rounded-xl overflow-hidden">
         <CardContent className="p-4 md:p-6">
-          <form method="GET" className="flex flex-col md:flex-row gap-4">
+          <form method="GET" className="space-y-4">
             {/* Preserve other filters as hidden inputs if we wanted to... For simplicity we rely on the sidebar form overriding everything if submitted, or we can use JS to sync them. Here we just offer a quick search that resets advanced filters. */}
-            <div className="flex-1 relative">
-              <TextSearch className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-neutral-400" />
-              <Input 
-                name="query" 
-                placeholder='Boolean Search: e.g. "React" AND "Node.js" OR "Python"' 
-                defaultValue={queryStr || ""}
-                className="h-14 pl-12 rounded-xl text-lg bg-neutral-50/50 border-neutral-200 focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
-              />
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <TextSearch className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-neutral-400" />
+                <Input 
+                  name="query" 
+                  placeholder='Boolean Search: e.g. "React" AND "Node.js" OR "Python"' 
+                  defaultValue={queryStr || ""}
+                  className="h-14 pl-12 rounded-xl text-lg bg-neutral-50/50 border-neutral-200 focus-visible:ring-teal-500/20 focus-visible:border-teal-500"
+                />
+              </div>
+              <Button type="submit" className="h-14 px-8 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-medium text-base shrink-0 shadow-sm gap-2">
+                <Search className="size-5" /> Search
+              </Button>
             </div>
-            <Button type="submit" className="h-14 px-8 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-medium text-base shrink-0 shadow-sm gap-2">
-              <Search className="size-5" /> Search
-            </Button>
+            <Textarea
+              name="jdText"
+              defaultValue={jdText || ""}
+              rows={3}
+              placeholder="Paste a JD to run AI Match ranking across visible candidates..."
+              className="text-sm"
+            />
+            <div className="flex flex-wrap gap-2">
+              {slIndustrySearchPacks.map((item) => (
+                <Button key={item.slug} asChild variant={pack === item.slug ? "default" : "outline"} size="sm" className={pack === item.slug ? "bg-teal-700 text-white" : ""}>
+                  <Link href={`/${locale}/talent-pool?pack=${item.slug}`}>{item.name}</Link>
+                </Button>
+              ))}
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -261,14 +319,9 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                         defaultValue={district || ""}
                       >
                         <option value="">All Island</option>
-                        <option value="Colombo">Colombo</option>
-                        <option value="Gampaha">Gampaha</option>
-                        <option value="Kalutara">Kalutara</option>
-                        <option value="Kandy">Kandy</option>
-                        <option value="Galle">Galle</option>
-                        <option value="Matara">Matara</option>
-                        <option value="Jaffna">Jaffna</option>
-                        <option value="Kurunegala">Kurunegala</option>
+                        {slDistricts.map((item) => (
+                          <option key={item} value={item}>{item}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -277,8 +330,27 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                     <Label htmlFor="university" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">University / Institute</Label>
                     <div className="relative">
                       <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-400" />
-                      <Input id="university" name="university" placeholder="e.g. SLIIT, Moratuwa" defaultValue={university || ""} className="h-10 pl-9 text-sm rounded-lg" />
+                      <Input id="university" name="university" list="sl-universities" placeholder="e.g. SLIIT, Moratuwa" defaultValue={university || ""} className="h-10 pl-9 text-sm rounded-lg" />
+                      <datalist id="sl-universities">
+                        {slUniversities.map((item) => <option key={item} value={item} />)}
+                      </datalist>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="company" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Current / Past Company</Label>
+                    <Input id="company" name="company" list="sl-companies" placeholder="e.g. WSO2, MAS" defaultValue={company || ""} className="h-10 text-sm rounded-lg" />
+                    <datalist id="sl-companies">
+                      {slCompanies.map((item) => <option key={item} value={item} />)}
+                    </datalist>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="certification" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Certification</Label>
+                    <Input id="certification" name="certification" list="sl-certs" placeholder="e.g. CIMA, ACCA" defaultValue={certification || ""} className="h-10 text-sm rounded-lg" />
+                    <datalist id="sl-certs">
+                      {slCertifications.map((item) => <option key={item} value={item} />)}
+                    </datalist>
                   </div>
 
                   <div className="space-y-2">
@@ -297,6 +369,55 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                       <option value="senior">Senior (5-8 yrs)</option>
                       <option value="lead">Lead / Staff (8+ yrs)</option>
                       <option value="executive">Executive / VP</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="noticePeriod" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Notice</Label>
+                      <select id="noticePeriod" name="noticePeriod" className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm" defaultValue={noticePeriod || ""}>
+                        <option value="">Any</option>
+                        <option value="2 weeks">≤2 weeks</option>
+                        <option value="1 month">1 month</option>
+                        <option value="2 months">2 months</option>
+                        <option value="3 months">3 months</option>
+                        <option value="negotiable">Negotiable</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="salaryMax" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Max LKR</Label>
+                      <Input id="salaryMax" name="salaryMax" type="number" placeholder="300000" defaultValue={salaryMax || ""} className="h-10 text-sm rounded-lg" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="language" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Language</Label>
+                      <select id="language" name="language" className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm" defaultValue={language || ""}>
+                        <option value="">Any</option>
+                        <option value="Sinhala">Sinhala</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="English">English</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="openTo" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Open to</Label>
+                      <select id="openTo" name="openTo" className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm" defaultValue={openTo || ""}>
+                        <option value="">Any</option>
+                        <option value="full_time">Full-time</option>
+                        <option value="contract">Contract</option>
+                        <option value="internship">Internship</option>
+                        <option value="freelance">Freelance</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sort" className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Sort by</Label>
+                    <select id="sort" name="sort" className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm" defaultValue={sort || ""}>
+                      <option value="">Relevance</option>
+                      <option value="confidence">Candidate confidence</option>
+                      <option value="freshest">Freshest profile</option>
                     </select>
                   </div>
                 </div>
@@ -322,6 +443,16 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                     />
                     <span className="group-hover:text-neutral-900 transition-colors">Verified Profiles Only</span>
                   </label>
+                  <label className="flex items-center gap-3 text-sm text-neutral-700 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      name="remote" 
+                      value="true" 
+                      defaultChecked={remote} 
+                      className="size-4 rounded border-neutral-300 accent-teal-600 focus:ring-teal-500 transition-all" 
+                    />
+                    <span className="group-hover:text-neutral-900 transition-colors">Remote / hybrid friendly</span>
+                  </label>
                 </div>
 
                 <div className="pt-2">
@@ -344,8 +475,11 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                   <div className="flex gap-5">
                     {/* User profile picture */}
                     <div className="size-16 rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50 text-teal-800 text-xl font-bold flex items-center justify-center shrink-0 border border-teal-100/50 overflow-hidden shadow-sm">
-                      {cand.profileImage ? (
+                      {cand.visibility !== "anonymous" && cand.profileImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={cand.profileImage} alt={cand.headline} className="size-full object-cover" />
+                      ) : cand.visibility === "anonymous" ? (
+                        "AN"
                       ) : (
                         `${cand.user.firstName[0] || ""}${cand.user.lastName[0] || ""}`
                       )}
@@ -354,8 +488,13 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="text-lg font-bold text-neutral-900 group-hover:text-teal-800 transition-colors">
-                          {cand.user.firstName} {cand.user.lastName}
+                          {publicCandidateName(cand.user.firstName, cand.user.lastName, cand.visibility)}
                         </h4>
+                        {cand.visibility === "anonymous" && (
+                          <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-800 text-[10px] uppercase">
+                            Anonymous
+                          </Badge>
+                        )}
                         {cand.isVerified && (
                           <span title="Verified Professional" className="bg-blue-50 text-blue-600 p-1 rounded-full">
                             <ShieldCheck className="size-3.5" />
@@ -383,6 +522,12 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                         )}
                       </div>
 
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-neutral-500">
+                        {cand.noticePeriod ? <span>Notice: {cand.noticePeriod}</span> : null}
+                        {cand.expectedSalary ? <span>Expected: {cand.expectedSalary}</span> : null}
+                        {cand.targetLocation ? <span>Target: {cand.targetLocation}</span> : null}
+                      </div>
+
                       {/* Pinned top skill keywords */}
                       {cand.skills && cand.skills.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2 pt-2">
@@ -399,9 +544,15 @@ export default async function TalentPoolPage({ params, searchParams }: TalentPoo
                   {/* Actions column */}
                   <div className="flex flex-col justify-between items-end gap-4 shrink-0 md:border-l md:border-neutral-100 md:pl-8">
                     <div className="text-right bg-neutral-50 px-3 py-2 rounded-lg border border-neutral-100">
-                      <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Match Score</p>
-                      <span className="text-xl font-black text-teal-700">{cand.completionScore}%</span>
+                      <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{cand.aiMatchScore !== null ? "AI Match" : "Confidence"}</p>
+                      <span className="text-xl font-black text-teal-700">{cand.aiMatchScore ?? cand.candidateConfidence}%</span>
                     </div>
+                    {cand.matchReasons.length ? (
+                      <div className="max-w-48 rounded-lg border border-teal-100 bg-teal-50 p-2 text-left text-[10px] text-teal-900">
+                        <div className="font-bold uppercase tracking-wider">Why matched</div>
+                        <div className="mt-1">{cand.matchReasons.slice(0, 3).join(", ")}</div>
+                      </div>
+                    ) : null}
 
                     <div className="flex flex-col gap-2 w-full mt-auto">
                       {cand.customSlug ? (

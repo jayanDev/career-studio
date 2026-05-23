@@ -7,6 +7,7 @@ import type { Locale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { generateJsonWithGemini, generateTextWithGemini, geminiModel } from "@/lib/ai";
 import { linkedInAuditResultSchema, type LinkedInAuditResult } from "@/lib/linkedin-audit";
+import { buildLinkedInAudit } from "@/lib/linkedin-optimization";
 import { prisma } from "@/lib/prisma";
 import { generateObject } from "ai";
 
@@ -23,6 +24,16 @@ const auditFormSchema = z.object({
   complianceMode: z.preprocess((val) => val === "true", z.boolean()).default(false),
   jdText: z.string().trim().default(""),
   connections: z.preprocess((val) => parseInt(val as string, 10) || 0, z.number()).default(0),
+  profileUrl: z.string().trim().default(""),
+  hasOpenToWork: z.preprocess((val) => val === "true", z.boolean()).default(false),
+  hasOpenToServices: z.preprocess((val) => val === "true", z.boolean()).default(false),
+  lastPostDate: z.string().trim().default(""),
+  postsPerWeek: z.preprocess((val) => Number(val) || 0, z.number()).default(0),
+  avgEngagement: z.preprocess((val) => Number(val) || 0, z.number()).default(0),
+  hashtags: z.string().trim().default(""),
+  topEndorsedSkills: z.string().trim().default(""),
+  regulatedIndustry: z.preprocess((val) => val === "true", z.boolean()).default(false),
+  diasporaMode: z.preprocess((val) => val === "true", z.boolean()).default(false),
 });
 
 const rewriteSchema = z.object({
@@ -45,6 +56,8 @@ async function requireUser(locale: Locale) {
   return session.user;
 }
 
+// Kept temporarily for back-compat reference while audits are migrated to buildLinkedInAudit.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function fallbackLinkedInAudit(
   profileText: string,
   targetRole: string,
@@ -61,6 +74,30 @@ function fallbackLinkedInAudit(
     connections?: number;
   }
 ): LinkedInAuditResult {
+  return buildLinkedInAudit({
+    profileText,
+    targetRole,
+    audienceMode: meta?.audienceMode ?? "global",
+    hasPhoto: meta?.hasPhoto ?? false,
+    hasBanner: meta?.hasBanner ?? false,
+    vanityUrl: meta?.vanityUrl ?? "",
+    recsGiven: meta?.recsGiven ?? 0,
+    recsReceived: meta?.recsReceived ?? 0,
+    featuredPopulated: meta?.featuredPopulated ?? false,
+    complianceMode: meta?.complianceMode ?? false,
+    regulatedIndustry: false,
+    diasporaMode: false,
+    hasOpenToWork: false,
+    hasOpenToServices: false,
+    jdText: meta?.jdText ?? "",
+    connections: meta?.connections ?? 0,
+    lastPostDate: "",
+    postsPerWeek: 0,
+    avgEngagement: 0,
+    hashtags: [],
+    topEndorsedSkills: [],
+  });
+/*
   const hasPhoto = meta?.hasPhoto ?? false;
   const hasBanner = meta?.hasBanner ?? false;
   const vanityUrl = meta?.vanityUrl ?? "";
@@ -223,6 +260,7 @@ function fallbackLinkedInAudit(
       compliance_mode_warning: complianceMode ? "Regulated banking/gov employee mode active. Verify internal project names are masked." : "",
     },
   };
+*/
 }
 
 export async function startLinkedInAuditAction(locale: Locale, formData: FormData) {
@@ -259,6 +297,41 @@ export async function startLinkedInAuditAction(locale: Locale, formData: FormDat
     complianceMode: formValue(formData, "complianceMode") || "false",
     jdText: formValue(formData, "jdText"),
     connections: formValue(formData, "connections"),
+    profileUrl: formValue(formData, "profileUrl"),
+    hasOpenToWork: formValue(formData, "hasOpenToWork") || "false",
+    hasOpenToServices: formValue(formData, "hasOpenToServices") || "false",
+    lastPostDate: formValue(formData, "lastPostDate"),
+    postsPerWeek: formValue(formData, "postsPerWeek"),
+    avgEngagement: formValue(formData, "avgEngagement"),
+    hashtags: formValue(formData, "hashtags"),
+    topEndorsedSkills: formValue(formData, "topEndorsedSkills"),
+    regulatedIndustry: formValue(formData, "regulatedIndustry") || "false",
+    diasporaMode: formValue(formData, "diasporaMode") || "false",
+  });
+
+  const deterministicResult = buildLinkedInAudit({
+    profileText: parsed.profileText,
+    targetRole: parsed.targetRole,
+    audienceMode: parsed.audienceMode,
+    hasPhoto: parsed.hasPhoto,
+    hasBanner: parsed.hasBanner,
+    vanityUrl: parsed.vanityUrl,
+    profileUrl: parsed.profileUrl,
+    recsGiven: parsed.recsGiven,
+    recsReceived: parsed.recsReceived,
+    featuredPopulated: parsed.featuredPopulated,
+    complianceMode: parsed.complianceMode,
+    regulatedIndustry: parsed.regulatedIndustry,
+    diasporaMode: parsed.diasporaMode,
+    hasOpenToWork: parsed.hasOpenToWork,
+    hasOpenToServices: parsed.hasOpenToServices,
+    jdText: parsed.jdText,
+    connections: parsed.connections,
+    lastPostDate: parsed.lastPostDate,
+    postsPerWeek: parsed.postsPerWeek,
+    avgEngagement: parsed.avgEngagement,
+    hashtags: splitCsv(parsed.hashtags),
+    topEndorsedSkills: splitCsv(parsed.topEndorsedSkills),
   });
 
   const audit = await prisma.linkedInAudit.create({
@@ -298,6 +371,16 @@ export async function startLinkedInAuditAction(locale: Locale, formData: FormDat
         complianceMode: parsed.complianceMode,
         jdText: parsed.jdText,
         connections: parsed.connections,
+        profileUrl: parsed.profileUrl,
+        hasOpenToWork: parsed.hasOpenToWork,
+        hasOpenToServices: parsed.hasOpenToServices,
+        lastPostDate: parsed.lastPostDate,
+        postsPerWeek: parsed.postsPerWeek,
+        avgEngagement: parsed.avgEngagement,
+        hashtags: splitCsv(parsed.hashtags),
+        topEndorsedSkills: splitCsv(parsed.topEndorsedSkills),
+        regulatedIndustry: parsed.regulatedIndustry,
+        diasporaMode: parsed.diasporaMode,
       },
     },
   });
@@ -317,6 +400,15 @@ Recommendations Received: ${parsed.recsReceived}
 Recommendations Given: ${parsed.recsGiven}
 Featured Section Populated: ${parsed.featuredPopulated ? "Yes" : "No"}
 Compliance Mode Activated: ${parsed.complianceMode ? "Yes (Regulated banking/gov employee restrictions apply)" : "No"}
+Regulated Industry: ${parsed.regulatedIndustry ? "Yes" : "No"}
+Diaspora Mode: ${parsed.diasporaMode ? "Yes" : "No"}
+Open To Work: ${parsed.hasOpenToWork ? "Yes" : "No"}
+Open To Services: ${parsed.hasOpenToServices ? "Yes" : "No"}
+Last Post Date: ${parsed.lastPostDate || "Unknown"}
+Posts Per Week: ${parsed.postsPerWeek}
+Average Engagement Per Post: ${parsed.avgEngagement}
+Hashtags Used: ${parsed.hashtags || "None"}
+Top Endorsed Skills: ${parsed.topEndorsedSkills || "Unknown"}
 
 PROFILE TEXT:
 """
@@ -346,12 +438,13 @@ Provide JSON matching the required typescript structure. Make sure you return BO
 Return ONLY valid JSON.
 `;
 
-  let result = fallbackLinkedInAudit(parsed.profileText, parsed.targetRole, parsed);
+  let result = deterministicResult;
   try {
-    result = linkedInAuditResultSchema.parse(await generateJsonWithGemini(prompt, linkedInAuditResultSchema));
+    const aiResult = linkedInAuditResultSchema.parse(await generateJsonWithGemini(prompt, linkedInAuditResultSchema));
+    result = mergeLinkedInAuditResults(deterministicResult, aiResult);
   } catch (error) {
     console.error("Gemini full LinkedIn audit failed, using fallback:", error);
-    result = fallbackLinkedInAudit(parsed.profileText, parsed.targetRole, parsed);
+    result = deterministicResult;
   }
 
   await prisma.linkedInAuditResult.create({
@@ -381,12 +474,27 @@ Return ONLY valid JSON.
         complianceMode: parsed.complianceMode,
         jdText: parsed.jdText,
         connections: parsed.connections,
+        profileUrl: parsed.profileUrl,
+        hasOpenToWork: parsed.hasOpenToWork,
+        hasOpenToServices: parsed.hasOpenToServices,
+        lastPostDate: parsed.lastPostDate,
+        postsPerWeek: parsed.postsPerWeek,
+        avgEngagement: parsed.avgEngagement,
+        hashtags: splitCsv(parsed.hashtags),
+        topEndorsedSkills: splitCsv(parsed.topEndorsedSkills),
+        regulatedIndustry: parsed.regulatedIndustry,
+        diasporaMode: parsed.diasporaMode,
         headline_analysis: result.headline_analysis,
         about_analysis: result.about_analysis,
         rec_endorsement_analysis: result.rec_endorsement_analysis,
         featured_audit: result.featured_audit,
         open_to_work_audit: result.open_to_work_audit,
         sri_lanka_moat: result.sri_lanka_moat,
+        profile_media_audit: result.profile_media_audit,
+        jd_keyword_analysis: result.jd_keyword_analysis,
+        activity_analysis: result.activity_analysis,
+        skills_optimizer: result.skills_optimizer,
+        benchmark: result.benchmark,
       }
     }
   });
@@ -473,6 +581,32 @@ Return ONLY the rewritten section. Do not include any intros, comments, quotes, 
       optimizedText: `Optimized ${parsed.sectionType}: Experienced ${parsed.targetRole} professional with a proven track record of delivering measurable outcomes, applying industry best practices, and driving operational excellence.` 
     };
   }
+}
+
+function splitCsv(value: string) {
+  return value
+    .split(/[,;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function mergeLinkedInAuditResults(base: LinkedInAuditResult, ai: LinkedInAuditResult): LinkedInAuditResult {
+  return linkedInAuditResultSchema.parse({
+    ...ai,
+    missing_keywords: ai.missing_keywords.length ? ai.missing_keywords : base.missing_keywords,
+    checklist_items: ai.checklist_items.length ? ai.checklist_items : base.checklist_items,
+    headline_analysis: { ...base.headline_analysis, ...ai.headline_analysis },
+    about_analysis: { ...base.about_analysis, ...ai.about_analysis },
+    rec_endorsement_analysis: { ...base.rec_endorsement_analysis, ...ai.rec_endorsement_analysis },
+    featured_audit: { ...base.featured_audit, ...ai.featured_audit },
+    open_to_work_audit: { ...base.open_to_work_audit, ...ai.open_to_work_audit },
+    profile_media_audit: base.profile_media_audit,
+    jd_keyword_analysis: base.jd_keyword_analysis,
+    activity_analysis: base.activity_analysis,
+    skills_optimizer: base.skills_optimizer,
+    benchmark: base.benchmark,
+    sri_lanka_moat: { ...base.sri_lanka_moat, ...ai.sri_lanka_moat },
+  });
 }
 
 const parsedLinkedInProfileSchema = z.object({

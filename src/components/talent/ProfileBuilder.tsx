@@ -74,7 +74,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
     customSlug: profile.customSlug || "",
     isPhonePublic: profile.isPhonePublic,
     isEmailPublic: profile.isEmailPublic,
-    visibility: profile.visibility as "public" | "recruiters_only" | "private",
+    visibility: profile.visibility as "public" | "recruiters_only" | "anonymous" | "private",
   });
 
   // Modal open states
@@ -751,6 +751,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
                     >
                       <option value="public">Public (Anyone can view, recruiter-safe details)</option>
                       <option value="recruiters_only">Recruiters Only (Only verified hiring managers)</option>
+                      <option value="anonymous">Anonymous (Name, photo, and current employer hidden until you accept outreach)</option>
                       <option value="private">Private (Hidden from the marketplace)</option>
                     </select>
                   </div>

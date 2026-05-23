@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { GcvEditorClient } from "@/components/feature/gcv/gcv-editor-client";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
+import { parseGcvTheme } from "@/lib/gcv-design";
 import { prisma } from "@/lib/prisma";
 import { parseResumeContent } from "@/lib/resume-content";
 
@@ -12,25 +13,6 @@ type GcvEditorPageProps = {
   params: Promise<{ locale: string; resumeId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-type Theme = {
-  accent: string;
-  density: "compact" | "comfortable" | "spacious";
-  template: string;
-};
-
-function parseTheme(value: unknown): Theme {
-  if (!value || typeof value !== "object") {
-    return { accent: "teal", density: "comfortable", template: "modern" };
-  }
-
-  const record = value as Record<string, unknown>;
-  return {
-    accent: typeof record.accent === "string" ? record.accent : "teal",
-    density: record.density === "compact" || record.density === "spacious" ? record.density : "comfortable",
-    template: typeof record.template === "string" ? record.template : "modern",
-  };
-}
 
 export async function generateMetadata({ params }: GcvEditorPageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
@@ -82,7 +64,7 @@ export default async function GcvEditorPage({ params, searchParams }: GcvEditorP
         title={resume.title}
         talentSlug={talentSlug}
         initialContent={parseResumeContent(resume.contentJson)}
-        initialTheme={parseTheme(resume.themeJson)}
+        initialTheme={parseGcvTheme(resume.themeJson)}
         labels={{
           title: t("titleLabel"),
           accent: t("accent"),

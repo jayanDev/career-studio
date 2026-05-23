@@ -8,17 +8,26 @@ import type { Locale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { generateJsonWithGemini } from "@/lib/ai";
 import { careerGpsPlanResultSchema, type CareerGpsPlanResult } from "@/lib/career-gps";
+import { buildCareerGpsEnhancements, type CareerGpsInputProfile } from "@/lib/career-gps-insights";
 import { prisma } from "@/lib/prisma";
 import { getCandidateResources } from "@/server/services/career-gps/resource-aggregator";
 
 const careerGpsFormSchema = z.object({
   currentProfile: z.string().trim().min(20).max(10000),
+  identityStory: z.string().trim().max(10000).default(""),
   experienceLevel: z.string().trim().max(120).default(""),
   constraints: z.string().trim().max(2000).default(""),
   learningStyle: z.string().trim().max(120).default(""),
   primaryRole: z.string().trim().min(2).max(255),
   secondaryRole: z.string().trim().max(255).default(""),
   timeframe: z.enum(["TWO_WEEKS", "THREE_MONTHS", "ONE_YEAR"]).default("THREE_MONTHS"),
+  ambitionMode: z.enum(["local", "global", "hybrid"]).default("local"),
+  sectorPreference: z.enum(["private", "public", "either"]).default("either"),
+  alStream: z.string().trim().max(120).default(""),
+  familyExpectation: z.coerce.number().int().min(0).max(10).default(5),
+  diasporaMode: z.boolean().default(false),
+  languageMode: z.enum(["en", "si", "ta"]).default("en"),
+  hollandCode: z.string().trim().max(3).default(""),
 });
 
 function formValue(formData: FormData, key: string) {
@@ -43,7 +52,7 @@ function weeksForPlan(planTier: PlanTier) {
 }
 
 function fallbackPlan(primaryRole: string, resources: Array<{ type: string; id: string; title: string }>): CareerGpsPlanResult {
-  return {
+  return careerGpsPlanResultSchema.parse({
     career_paths: [{ role: primaryRole, match: 72, why: ["Your current profile has transferable skills", "The roadmap focuses on practical proof of ability"] }],
     skill_gaps: {
       must_learn: [
@@ -77,20 +86,29 @@ function fallbackPlan(primaryRole: string, resources: Array<{ type: string; id: 
         },
       ],
     },
-  };
+  });
 }
 
 export async function generateCareerGpsPlanAction(locale: Locale, formData: FormData) {
   const user = await requireUser(locale);
   const parsed = careerGpsFormSchema.parse({
     currentProfile: formValue(formData, "currentProfile"),
+    identityStory: formValue(formData, "identityStory"),
     experienceLevel: formValue(formData, "experienceLevel"),
     constraints: formValue(formData, "constraints"),
     learningStyle: formValue(formData, "learningStyle"),
     primaryRole: formValue(formData, "primaryRole"),
     secondaryRole: formValue(formData, "secondaryRole"),
     timeframe: formValue(formData, "timeframe") || "THREE_MONTHS",
+    ambitionMode: formValue(formData, "ambitionMode") || "local",
+    sectorPreference: formValue(formData, "sectorPreference") || "either",
+    alStream: formValue(formData, "alStream"),
+    familyExpectation: formValue(formData, "familyExpectation") || "5",
+    diasporaMode: formData.get("diasporaMode") === "on",
+    languageMode: formValue(formData, "languageMode") || "en",
+    hollandCode: formValue(formData, "hollandCode"),
   });
+  const story = [parsed.identityStory, parsed.currentProfile].filter(Boolean).join("\n\n");
   const profile = await prisma.userProfile.findUnique({ where: { userId: user.id }, select: { planTier: true } });
   const planTier = profile?.planTier ?? PlanTier.basic;
   const resources = await getCandidateResources([parsed.primaryRole, parsed.secondaryRole], 40);
@@ -98,6 +116,14 @@ export async function generateCareerGpsPlanAction(locale: Locale, formData: Form
     experience_level: parsed.experienceLevel,
     constraints: parsed.constraints,
     learning_style: parsed.learningStyle,
+    identity_story: parsed.identityStory,
+    ambition_mode: parsed.ambitionMode,
+    sector_preference: parsed.sectorPreference,
+    al_stream: parsed.alStream,
+    family_expectation: parsed.familyExpectation,
+    diaspora_mode: parsed.diasporaMode,
+    language_mode: parsed.languageMode,
+    holland_code: parsed.hollandCode,
   };
   const goals = {
     primary: parsed.primaryRole,
@@ -109,7 +135,7 @@ export async function generateCareerGpsPlanAction(locale: Locale, formData: Form
         Create a personalized career roadmap for the user based on their Profile and Goals.
 
         USER PROFILE:
-        - CV Summary: ${parsed.currentProfile.slice(0, 5000)}
+        - Story and CV Summary: ${story.slice(0, 7000)}
         - Questionnaire: ${JSON.stringify(questions, null, 2)}
         - Goals: ${JSON.stringify(goals, null, 2)}
 
@@ -118,6 +144,17 @@ export async function generateCareerGpsPlanAction(locale: Locale, formData: Form
 
         OUTPUT SCHEMA (JSON Only):
         {
+          "identity_statement": "You are someone who...",
+          "plan_strength": {"score": 82, "label": "Strong direction, some week-level detail still missing", "reasons": ["..."]},
+          "identity_profile": {"skills": [], "interests": [], "values": [], "motivations": [], "hidden_strengths": [], "holland_code": "IAS", "family_expectation": 5, "ambition_mode": "local"},
+          "constellation": [
+            {"id": "software-engineer", "role": "Software Engineer", "domain": "Tech", "match": 86, "x": 35, "y": 42, "summary": "...", "salary_lkr": "Rs 250k-500k/month", "difficulty": 72, "difficulty_label": "Moderate", "nearest_neighbours": ["..."]}
+          ],
+          "pathways": [
+            {"type": "aligned", "role": "Target Role", "summary": "...", "risk": "...", "time_to_transition_months": 9, "salary_curve_lkr": [{"year": 1, "p25": 180000, "p75": 320000}], "public_sector_fit": "...", "private_sector_fit": "..."}
+          ],
+          "skill_overlap": {"current_skills": [], "target_skills": [], "transferable": [], "gaps": [], "drop_or_deprioritize": [], "overlap_pct": 50},
+          "sl_context": {"al_stream_pathways": [], "industry_ladders": [], "certifications": [], "universities": [], "scholarships": [], "diaspora_bridge": "", "cost_of_living_note": "", "cultural_calendar_notes": []},
           "career_paths": [
             {"role": "Target Role Name", "match": 85, "why": ["Reason 1", "Reason 2"]}
           ],
@@ -152,7 +189,9 @@ export async function generateCareerGpsPlanAction(locale: Locale, formData: Form
         1. Be realistic. If the gap is huge, suggest intermediate roles.
         2. Use the provided resources if they match the learning needs.
         3. Structure the roadmap logically (Foundations -> Advanced -> Application).
-        4. Return ONLY valid JSON.
+        4. Generate 8-15 constellation careers and 3 pathways: aligned, stretch, pivot.
+        5. Include Sri Lanka-specific pathways when ambition_mode is local or hybrid.
+        6. Return ONLY valid JSON.
         `;
   let generated = fallbackPlan(parsed.primaryRole, resources);
   try {
@@ -160,6 +199,22 @@ export async function generateCareerGpsPlanAction(locale: Locale, formData: Form
   } catch {
     generated = fallbackPlan(parsed.primaryRole, resources);
   }
+  const inputProfile: CareerGpsInputProfile = {
+    story,
+    primaryRole: parsed.primaryRole,
+    secondaryRole: parsed.secondaryRole,
+    experienceLevel: parsed.experienceLevel,
+    constraints: parsed.constraints,
+    learningStyle: parsed.learningStyle,
+    ambitionMode: parsed.ambitionMode,
+    sectorPreference: parsed.sectorPreference,
+    alStream: parsed.alStream,
+    familyExpectation: parsed.familyExpectation,
+    diasporaMode: parsed.diasporaMode,
+    languageMode: parsed.languageMode,
+    hollandCode: parsed.hollandCode,
+  };
+  generated = buildCareerGpsEnhancements(inputProfile, generated);
 
   const session = await prisma.careerGPSSession.create({
     data: {
@@ -171,7 +226,7 @@ export async function generateCareerGpsPlanAction(locale: Locale, formData: Form
     data: {
       sessionId: session.id,
       text: parsed.currentProfile,
-      dataJson: { experienceLevel: parsed.experienceLevel },
+      dataJson: { experienceLevel: parsed.experienceLevel, identityStory: parsed.identityStory, languageMode: parsed.languageMode },
     },
   });
   await prisma.careerGPSQuestionnaire.create({

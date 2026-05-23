@@ -60,6 +60,12 @@ export default async function ResumeEditorPage({ params }: ResumeEditorPageProps
               DOCX
             </Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href={`/api/resumes/${resume.id}/export/bundle`}>
+              <Download className="size-4" />
+              Bundle
+            </Link>
+          </Button>
         </div>
       </div>
       <ResumeEditorClient
@@ -81,6 +87,11 @@ export default async function ResumeEditorPage({ params }: ResumeEditorPageProps
             skills: t("sections.skills"),
             projects: t("sections.projects"),
             certifications: t("sections.certifications"),
+            languages: "Languages",
+            awards: "Awards",
+            volunteering: "Volunteering",
+            publications: "Publications",
+            references: "References",
           },
         }}
       />

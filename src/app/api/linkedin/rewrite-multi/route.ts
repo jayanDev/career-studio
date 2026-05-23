@@ -26,9 +26,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let parsed: z.infer<typeof rewriteMultiSchema> | null = null;
   try {
-    const body = await req.json();
-    const parsed = rewriteMultiSchema.parse(body);
+    parsed = rewriteMultiSchema.parse(await req.json());
 
     const jdPrompt = parsed.targetJd
       ? `Additionally, align the output keywords with the following target Job Description:\n${parsed.targetJd.slice(0, 3000)}\n`
@@ -60,9 +60,24 @@ Return the 5 options in JSON matching the schema. Do not include markdown wraps 
     return NextResponse.json(response.object);
   } catch (error) {
     console.error("Multi-variant rewrite generation failed:", error);
-    return NextResponse.json(
-      { error: "Failed to generate multi-variant suggestions" },
-      { status: 500 }
-    );
+    if (parsed) {
+      return NextResponse.json(buildFallbackVariants(parsed.sectionType, parsed.currentText, parsed.targetRole));
+    } else {
+      return NextResponse.json(
+        { error: "Failed to generate multi-variant suggestions" },
+        { status: 500 }
+      );
+    }
   }
+}
+
+function buildFallbackVariants(sectionType: string, currentText: string, targetRole: string) {
+  const subject = sectionType === "headline" ? targetRole || "Career professional" : currentText.slice(0, 140);
+  return {
+    visibility: `${targetRole || "Professional"} | Search-optimized profile with role-relevant skills, measurable outcomes, and clear industry keywords`,
+    authority: `${subject}\n\nI build credibility through measurable delivery, cross-functional ownership, and practical outcomes that improve team and business performance.`,
+    opportunity: `${subject}\n\nOpen to conversations where my experience can help teams deliver better systems, clearer execution, and measurable results.`,
+    story: `I help teams turn complex career and product problems into practical outcomes. My work combines hands-on execution, clear communication, and a bias for measurable progress.`,
+    clarity: `${targetRole || "Professional"} focused on measurable outcomes, clean execution, and useful collaboration.`,
+  };
 }

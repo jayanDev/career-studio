@@ -36,8 +36,14 @@ export async function saveResumeSnapshot(resumeId: string, content: ResumeConten
   const existingVersion = await prisma.resumeVersion.findFirst({
     where: { resumeId },
     orderBy: { versionNumber: "desc" },
-    select: { versionNumber: true },
+    select: { versionNumber: true, createdAt: true },
   });
+
+  const isAutosave = changeSummary.toLowerCase().includes("autosaved");
+  const tenMinutesMs = 10 * 60 * 1000;
+  if (isAutosave && existingVersion && Date.now() - existingVersion.createdAt.getTime() < tenMinutesMs) {
+    return;
+  }
 
   await prisma.resumeVersion.create({
     data: {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { 
   ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, User, ShieldCheck, 
-  MapPin, Printer, HelpCircle, Layers, FileText, CheckCircle, Info, Landmark,
+  Printer, Layers, FileText, CheckCircle, Info, Landmark,
   Globe, Loader2
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -76,6 +76,11 @@ export default async function LinkedInAuditPage({ params }: LinkedInAuditPagePro
         featured_audit: dataJson.featured_audit || {},
         open_to_work_audit: dataJson.open_to_work_audit || {},
         sri_lanka_moat: dataJson.sri_lanka_moat || {},
+        profile_media_audit: dataJson.profile_media_audit || {},
+        jd_keyword_analysis: dataJson.jd_keyword_analysis || {},
+        activity_analysis: dataJson.activity_analysis || {},
+        skills_optimizer: dataJson.skills_optimizer || {},
+        benchmark: dataJson.benchmark || {},
       })
     : null;
 
@@ -114,13 +119,21 @@ export default async function LinkedInAuditPage({ params }: LinkedInAuditPagePro
           </Link>
         </Button>
 
-        <button 
-          onClick={() => window.print()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 shadow-xs transition-all"
-        >
-          <Printer className="size-3.5 text-teal-700" />
-          Export / Print Report
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" className="text-xs">
+            <Link href={`/linkedin/share/${audit.id}`}>
+              <Globe className="size-3.5 mr-1" />
+              Public share
+            </Link>
+          </Button>
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 shadow-xs transition-all"
+          >
+            <Printer className="size-3.5 text-teal-700" />
+            Export / Print Report
+          </button>
+        </div>
       </div>
 
       {/* Main score card */}
@@ -203,6 +216,44 @@ export default async function LinkedInAuditPage({ params }: LinkedInAuditPagePro
                     </div>
                   );
                 })}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-neutral-200 shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="py-4 border-b bg-neutral-50/50">
+                <CardTitle className="text-sm font-bold text-neutral-950 flex items-center gap-2">
+                  <FileText className="size-4 text-teal-700" />
+                  Profile Media & JD Match
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border bg-neutral-50 p-3">
+                    <div className="text-[10px] font-bold uppercase text-neutral-400">Photo</div>
+                    <div className="mt-1 text-lg font-extrabold text-neutral-900">{parsed.data.profile_media_audit.photo_score}/100</div>
+                    <p className="mt-1 text-[10px] leading-4 text-neutral-500">{parsed.data.profile_media_audit.photo_feedback[0]}</p>
+                  </div>
+                  <div className="rounded-lg border bg-neutral-50 p-3">
+                    <div className="text-[10px] font-bold uppercase text-neutral-400">Banner</div>
+                    <div className="mt-1 text-lg font-extrabold text-neutral-900">{parsed.data.profile_media_audit.banner_score}/100</div>
+                    <p className="mt-1 text-[10px] leading-4 text-neutral-500">{parsed.data.profile_media_audit.banner_feedback[0]}</p>
+                  </div>
+                  <div className="rounded-lg border bg-neutral-50 p-3">
+                    <div className="text-[10px] font-bold uppercase text-neutral-400">JD Match</div>
+                    <div className="mt-1 text-lg font-extrabold text-teal-700">{parsed.data.jd_keyword_analysis.match_score}%</div>
+                    <p className="mt-1 text-[10px] leading-4 text-neutral-500">{parsed.data.jd_keyword_analysis.matched_keywords.length} weighted keywords matched</p>
+                  </div>
+                </div>
+                {parsed.data.jd_keyword_analysis.extracted.hard_skills.length ? (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Structured JD Keywords</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[...parsed.data.jd_keyword_analysis.extracted.hard_skills, ...parsed.data.jd_keyword_analysis.extracted.tools].slice(0, 16).map((keyword) => (
+                        <Badge key={keyword} variant="outline" className="bg-white text-[10px]">{keyword}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -496,6 +547,60 @@ export default async function LinkedInAuditPage({ params }: LinkedInAuditPagePro
                       💡 {s}
                     </p>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-neutral-200 shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="py-4 border-b bg-neutral-50/50">
+                <CardTitle className="text-sm font-bold text-neutral-950 flex items-center gap-2">
+                  <Globe className="size-4 text-teal-700" />
+                  Activity, Skills & Benchmark
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg border bg-neutral-50 p-3 text-center">
+                    <div className="text-sm font-bold text-neutral-800">{parsed.data.activity_analysis.posts_per_week}</div>
+                    <div className="text-[9px] uppercase font-bold text-neutral-400">Posts / week</div>
+                  </div>
+                  <div className="rounded-lg border bg-neutral-50 p-3 text-center">
+                    <div className="text-sm font-bold text-neutral-800">{parsed.data.activity_analysis.last_post_days_ago}</div>
+                    <div className="text-[9px] uppercase font-bold text-neutral-400">Days since post</div>
+                  </div>
+                  <div className="rounded-lg border bg-neutral-50 p-3 text-center">
+                    <div className="text-sm font-bold text-neutral-800">{parsed.data.activity_analysis.engagement_score}</div>
+                    <div className="text-[9px] uppercase font-bold text-neutral-400">Engagement score</div>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-teal-100 bg-teal-50/40 p-3 text-[11px] leading-5 text-teal-950">
+                  <strong>{parsed.data.activity_analysis.cadence_label}.</strong> {parsed.data.activity_analysis.best_time_to_post}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Suggested Skills</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {parsed.data.skills_optimizer.suggested_skills.slice(0, 14).map((skill) => (
+                      <Badge key={skill} variant="secondary" className="text-[10px]">{skill}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Recruiter Boolean Searches</div>
+                  {parsed.data.skills_optimizer.boolean_search_examples.map((search) => (
+                    <div key={search} className="rounded-md bg-neutral-950 px-3 py-2 font-mono text-[10px] text-neutral-100">{search}</div>
+                  ))}
+                </div>
+                <div className="space-y-2 border-t pt-4">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">{parsed.data.benchmark.peer_label}</div>
+                  {parsed.data.benchmark.gaps.slice(0, 3).map((gap) => (
+                    <div key={gap} className="flex items-start gap-2 text-[11px] text-neutral-600">
+                      <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                      <span>{gap}</span>
+                    </div>
+                  ))}
+                  {parsed.data.benchmark.reaudit_recommended_on ? (
+                    <p className="text-[10px] font-semibold text-teal-700">Re-audit reminder target: {parsed.data.benchmark.reaudit_recommended_on}</p>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>

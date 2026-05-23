@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Palette } from "lucide-react";
+import { LayoutTemplate, Palette } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
+import { gcvPalettes, gcvTemplates } from "@/lib/gcv-design";
 import { prisma } from "@/lib/prisma";
 import { createGcvResumeAction } from "@/server/actions/resumes/create-resume";
 
@@ -51,24 +52,55 @@ export default async function GcvPage({ params }: GcvPageProps) {
           <CardTitle>{t("createTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={action} className="grid gap-4 lg:grid-cols-[1fr_160px_160px_auto]">
+          <form action={action} className="grid gap-4">
             <Input name="title" placeholder={t("titlePlaceholder")} required />
-            <select name="accent" className="h-9 rounded-md border bg-white px-3 text-sm">
-              <option value="teal">Teal</option>
-              <option value="amber">Amber</option>
-              <option value="rose">Rose</option>
-              <option value="neutral">Neutral</option>
-            </select>
-            <select name="density" className="h-9 rounded-md border bg-white px-3 text-sm">
-              <option value="comfortable">Comfortable</option>
-              <option value="compact">Compact</option>
-              <option value="spacious">Spacious</option>
-            </select>
-            <input type="hidden" name="template" value="modern" />
-            <Button type="submit" className="bg-teal-700 text-white hover:bg-teal-800">
-              <Palette className="size-4" />
-              {t("create")}
-            </Button>
+            <div className="grid gap-3 md:grid-cols-4">
+              <select name="palette" className="h-9 rounded-md border bg-white px-3 text-sm">
+                {gcvPalettes.map((palette) => (
+                  <option key={palette.key} value={palette.key}>{palette.name}</option>
+                ))}
+              </select>
+              <select name="density" className="h-9 rounded-md border bg-white px-3 text-sm">
+                <option value="comfortable">Comfortable</option>
+                <option value="compact">Compact</option>
+                <option value="spacious">Spacious</option>
+              </select>
+              <select name="mode" className="h-9 rounded-md border bg-white px-3 text-sm">
+                <option value="visual">Visual</option>
+                <option value="ats-safe">ATS-safe</option>
+              </select>
+              <select name="paper" className="h-9 rounded-md border bg-white px-3 text-sm">
+                <option value="A4">Local SL / A4</option>
+                <option value="Letter">International / Letter</option>
+              </select>
+            </div>
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-neutral-900">
+                <LayoutTemplate className="size-4 text-teal-700" />
+                Template gallery
+              </div>
+              <div className="grid max-h-96 gap-3 overflow-auto md:grid-cols-2 xl:grid-cols-3">
+                {gcvTemplates.map((template) => (
+                  <label key={template.key} className="cursor-pointer rounded-md border p-3 text-sm hover:bg-neutral-50">
+                    <input type="radio" name="template" value={template.key} defaultChecked={template.key === "tech-minimal-stack"} className="mr-2" />
+                    <span className="font-medium text-neutral-950">{template.name}</span>
+                    <span className="mt-1 block text-xs leading-5 text-neutral-500">
+                      {template.industry} | {template.layout} | {template.tone}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" name="showPhoto" defaultChecked /> Photo</label>
+              <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" name="showLogos" defaultChecked /> SL logos</label>
+              <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" name="showQr" defaultChecked /> QR</label>
+              <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" name="showMotif" /> SL motif</label>
+              <Button type="submit" className="bg-teal-700 text-white hover:bg-teal-800">
+                <Palette className="size-4" />
+                {t("create")}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

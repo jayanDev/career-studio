@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateJsonWithGemini, generateTextWithGemini } from "@/lib/ai";
+import { generateJsonWithGemini } from "@/lib/ai";
 
 const naturalSearchSchema = z.object({
   query: z.string().trim().min(2, "Search query is too short"),
@@ -59,7 +59,19 @@ Return a JSON object conforming strictly to this schema:
     return await generateJsonWithGemini(prompt, naturalSearchResultSchema);
   } catch (error) {
     console.error("AI Parse Error:", error);
-    throw new Error("Failed to parse natural language search");
+    const lower = parsed.query.toLowerCase();
+    const skills = ["python", "django", "react", "next.js", "java", "aws", "kubernetes", "sql", "figma"]
+      .filter((skill) => lower.includes(skill))
+      .map((skill) => skill.replace(/^./, (char) => char.toUpperCase()));
+    const district = ["colombo", "kandy", "galle", "jaffna", "gampaha"].find((item) => lower.includes(item));
+    const careerLevel = ["junior", "mid", "senior", "lead"].find((item) => lower.includes(item));
+    return {
+      title: lower.includes("engineer") ? "Engineer" : lower.includes("designer") ? "Designer" : null,
+      skills,
+      district: district ? district.replace(/^./, (char) => char.toUpperCase()) : null,
+      careerLevel: careerLevel || null,
+      booleanQuery: skills.length ? skills.join(" AND ") : parsed.query,
+    };
   }
 }
 

@@ -6,6 +6,15 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateTextWithGemini } from "@/lib/ai";
+import {
+  buildCandidateSearchText,
+  calculateCandidateConfidence,
+  deriveCompanyDomain,
+  isWorkEmailVerifiedForDomain,
+  parseSalaryExpectation,
+  scoreCandidateAgainstJd,
+  validateRecruiterSearch,
+} from "@/lib/talent-pool";
 
 const recruiterProfileSchema = z.object({
   companyName: z.string().trim().min(1, "Company name is required"),
@@ -43,6 +52,7 @@ export async function saveRecruiterProfile(data: z.infer<typeof recruiterProfile
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const parsed = recruiterProfileSchema.parse(data);
+  const verificationDomain = deriveCompanyDomain(parsed.websiteUrl, parsed.workEmail || session.user.email || "");
 
   // Try to find a company by exact name or website
   let company = null;
@@ -69,15 +79,22 @@ export async function saveRecruiterProfile(data: z.infer<typeof recruiterProfile
           size: parsed.companySize,
           country: "Sri Lanka",
           about: parsed.about,
+          verificationDomain,
           isVerified: false,
         }
+      });
+    } else if (verificationDomain && !company.verificationDomain) {
+      company = await prisma.company.update({
+        where: { id: company.id },
+        data: { verificationDomain },
       });
     }
   }
 
   // Automatic verification check (if user email domain matches company verification domain)
   let isVerified = false;
-  if (company && company.verificationDomain && session.user.email?.endsWith(`@${company.verificationDomain}`)) {
+  const emailForVerification = parsed.workEmail || session.user.email || "";
+  if (company && company.verificationDomain && isWorkEmailVerifiedForDomain(emailForVerification, company.verificationDomain)) {
     isVerified = true;
   }
 
@@ -131,6 +148,15 @@ export async function searchTalentPool(filters: {
   district?: string;
   university?: string;
   currency?: string;
+  noticePeriod?: string;
+  salaryMax?: number;
+  language?: string;
+  openTo?: string;
+  remote?: boolean;
+  company?: string;
+  certification?: string;
+  sort?: string;
+  jdText?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -140,9 +166,11 @@ export async function searchTalentPool(filters: {
     where: { userId: session.user.id }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  validateRecruiterSearch([filters.query, filters.title, filters.skill, filters.company, filters.university, filters.certification].filter(Boolean).join(" "));
+
   const where: any = {
-    visibility: { in: ["public", "recruiters_only"] },
+    visibility: { in: ["public", "recruiters_only", "anonymous"] },
+    completionScore: { gte: 80 },
   };
 
   // Blocklist check
@@ -181,6 +209,22 @@ export async function searchTalentPool(filters: {
   if (filters.university) {
     where.educations = {
       some: { institutionName: { contains: filters.university, mode: "insensitive" } }
+    };
+  }
+
+  if (filters.noticePeriod) {
+    where.noticePeriod = { contains: filters.noticePeriod, mode: "insensitive" };
+  }
+
+  if (filters.company) {
+    where.experiences = {
+      some: { companyName: { contains: filters.company, mode: "insensitive" } }
+    };
+  }
+
+  if (filters.certification) {
+    where.certifications = {
+      some: { name: { contains: filters.certification, mode: "insensitive" } }
     };
   }
 
@@ -240,6 +284,7 @@ export async function searchTalentPool(filters: {
       skills: { take: 5, orderBy: { sortOrder: "asc" } },
       experiences: { take: 1, orderBy: { startDate: "desc" } },
       educations: { take: 1, orderBy: { startDate: "desc" } },
+      certifications: { take: 3 },
       user: {
         select: {
           firstName: true,
@@ -248,13 +293,54 @@ export async function searchTalentPool(filters: {
         }
       }
     },
-    orderBy: {
-      completionScore: "desc",
-    },
+    orderBy: filters.sort === "freshest" ? { updatedAt: "desc" } : { completionScore: "desc" },
     take: 50, // Limit to top 50 for performance
   });
 
-  return results;
+  let enriched = results.map((profile) => {
+    const searchText = buildCandidateSearchText(profile);
+    const jd = filters.jdText ? scoreCandidateAgainstJd(searchText, filters.jdText) : null;
+    return {
+      ...profile,
+      candidateConfidence: calculateCandidateConfidence(profile),
+      aiMatchScore: jd?.score ?? null,
+      matchReasons: jd?.matched.slice(0, 5) ?? [],
+      matchGaps: jd?.missing.slice(0, 5) ?? [],
+    };
+  });
+
+  if (filters.salaryMax) {
+    enriched = enriched.filter((profile) => {
+      const expected = parseSalaryExpectation(profile.expectedSalary);
+      return !expected || expected <= filters.salaryMax!;
+    });
+  }
+
+  if (filters.openTo) {
+    enriched = enriched.filter((profile) => {
+      const preferred = Array.isArray(profile.preferredJobTypes) ? profile.preferredJobTypes.map(String) : [];
+      return preferred.some((item) => item.toLowerCase().includes(filters.openTo!.toLowerCase()));
+    });
+  }
+
+  if (filters.language) {
+    enriched = enriched.filter((profile) => {
+      const languages = Array.isArray(profile.languages) ? profile.languages : [];
+      return JSON.stringify(languages).toLowerCase().includes(filters.language!.toLowerCase());
+    });
+  }
+
+  if (filters.remote) {
+    enriched = enriched.filter((profile) => /remote|hybrid|anywhere/i.test(`${profile.targetLocation} ${profile.city} ${profile.country}`));
+  }
+
+  if (filters.jdText) {
+    enriched.sort((left, right) => (right.aiMatchScore ?? 0) - (left.aiMatchScore ?? 0));
+  } else if (filters.sort === "confidence") {
+    enriched.sort((left, right) => right.candidateConfidence - left.candidateConfidence);
+  }
+
+  return enriched;
 }
 
 // Project/Pipeline Management
@@ -400,6 +486,36 @@ export async function sendContactRequest(data: z.infer<typeof contactRequestSche
 
   if (!recruiter) {
     throw new Error("You must set up a Recruiter Profile first.");
+  }
+
+  if (!recruiter.isVerified) {
+    throw new Error("Company verification is required before sending outreach.");
+  }
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const sentToday = await prisma.talentContactRequest.count({
+    where: {
+      recruiterId: session.user.id,
+      createdAt: { gte: startOfDay },
+    },
+  });
+  if (sentToday >= 50) {
+    throw new Error("Daily outreach limit reached. Try again tomorrow.");
+  }
+
+  if (recruiter.companyId) {
+    const blocked = await prisma.candidateBlock.findUnique({
+      where: {
+        talentProfileId_companyId: {
+          talentProfileId: parsed.talentProfileId,
+          companyId: recruiter.companyId,
+        },
+      },
+    });
+    if (blocked) {
+      throw new Error("This candidate has blocked outreach from your company.");
+    }
   }
 
   // Deduct contact credit

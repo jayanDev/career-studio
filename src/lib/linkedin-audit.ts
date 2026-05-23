@@ -6,6 +6,14 @@ const missingKeywordSchema = z.object({
   placement: z.string(),
 });
 
+export const linkedInJdKeywordsSchema = z.object({
+  hard_skills: z.array(z.string()).default([]),
+  soft_skills: z.array(z.string()).default([]),
+  certifications: z.array(z.string()).default([]),
+  tools: z.array(z.string()).default([]),
+  seniority: z.string().default("Mid"),
+});
+
 export const linkedInAuditResultSchema = z.object({
   score_breakdown: z.object({
     // Legacy dimensions (defaulted to allow back-compat)
@@ -99,6 +107,104 @@ export const linkedInAuditResultSchema = z.object({
     badge_status: "None",
     recommendations: "",
   }),
+
+  profile_media_audit: z.object({
+    photo_present: z.boolean().default(false),
+    photo_score: z.number().default(0),
+    photo_feedback: z.array(z.string()).default([]),
+    banner_present: z.boolean().default(false),
+    banner_score: z.number().default(0),
+    banner_feedback: z.array(z.string()).default([]),
+    vanity_url_clean: z.boolean().default(false),
+    public_visibility_detected: z.boolean().default(false),
+  }).default({
+    photo_present: false,
+    photo_score: 0,
+    photo_feedback: [],
+    banner_present: false,
+    banner_score: 0,
+    banner_feedback: [],
+    vanity_url_clean: false,
+    public_visibility_detected: false,
+  }),
+
+  jd_keyword_analysis: z.object({
+    extracted: linkedInJdKeywordsSchema.default({
+      hard_skills: [],
+      soft_skills: [],
+      certifications: [],
+      tools: [],
+      seniority: "Mid",
+    }),
+    match_score: z.number().default(0),
+    matched_keywords: z.array(z.string()).default([]),
+    missing_hard_skills: z.array(z.string()).default([]),
+    missing_soft_skills: z.array(z.string()).default([]),
+    missing_tools: z.array(z.string()).default([]),
+    missing_certifications: z.array(z.string()).default([]),
+    placement_hints: z.array(missingKeywordSchema).default([]),
+  }).default({
+    extracted: {
+      hard_skills: [],
+      soft_skills: [],
+      certifications: [],
+      tools: [],
+      seniority: "Mid",
+    },
+    match_score: 0,
+    matched_keywords: [],
+    missing_hard_skills: [],
+    missing_soft_skills: [],
+    missing_tools: [],
+    missing_certifications: [],
+    placement_hints: [],
+  }),
+
+  activity_analysis: z.object({
+    posts_per_week: z.number().default(0),
+    last_post_days_ago: z.number().default(999),
+    cadence_label: z.string().default("No recent activity detected"),
+    engagement_score: z.number().default(0),
+    hashtag_feedback: z.array(z.string()).default([]),
+    best_time_to_post: z.string().default("Mon-Wed 9-11am SLT or 7-9pm SLT"),
+    post_ideas: z.array(z.string()).default([]),
+    comment_templates: z.array(z.string()).default([]),
+  }).default({
+    posts_per_week: 0,
+    last_post_days_ago: 999,
+    cadence_label: "No recent activity detected",
+    engagement_score: 0,
+    hashtag_feedback: [],
+    best_time_to_post: "Mon-Wed 9-11am SLT or 7-9pm SLT",
+    post_ideas: [],
+    comment_templates: [],
+  }),
+
+  skills_optimizer: z.object({
+    suggested_skills: z.array(z.string()).default([]),
+    top_endorsed_skills: z.array(z.string()).default([]),
+    mismatched_top_skills: z.array(z.string()).default([]),
+    boolean_search_examples: z.array(z.string()).default([]),
+  }).default({
+    suggested_skills: [],
+    top_endorsed_skills: [],
+    mismatched_top_skills: [],
+    boolean_search_examples: [],
+  }),
+
+  benchmark: z.object({
+    peer_label: z.string().default("Comparable professionals"),
+    strengths: z.array(z.string()).default([]),
+    gaps: z.array(z.string()).default([]),
+    progress_next_steps: z.array(z.string()).default([]),
+    reaudit_recommended_on: z.string().default(""),
+  }).default({
+    peer_label: "Comparable professionals",
+    strengths: [],
+    gaps: [],
+    progress_next_steps: [],
+    reaudit_recommended_on: "",
+  }),
   
   sri_lanka_moat: z.object({
     local_companies_matched: z.array(z.string()).default([]),
@@ -110,6 +216,11 @@ export const linkedInAuditResultSchema = z.object({
     bilingual_support: z.string().default(""),
     diaspora_leverage: z.string().default(""),
     compliance_mode_warning: z.string().default(""),
+    audience_mode: z.enum(["local", "global"]).default("global"),
+    recruiter_activity_window: z.string().default("Mon-Wed 9-11am SLT and 7-9pm SLT"),
+    industry_keyword_pack: z.array(z.string()).default([]),
+    alumni_leverage: z.string().default(""),
+    holiday_posting_note: z.string().default("Avoid major SL holiday periods unless the post is culturally relevant."),
   }).default({
     local_companies_matched: [],
     local_universities_matched: [],
@@ -120,6 +231,11 @@ export const linkedInAuditResultSchema = z.object({
     bilingual_support: "",
     diaspora_leverage: "",
     compliance_mode_warning: "",
+    audience_mode: "global",
+    recruiter_activity_window: "Mon-Wed 9-11am SLT and 7-9pm SLT",
+    industry_keyword_pack: [],
+    alumni_leverage: "",
+    holiday_posting_note: "Avoid major SL holiday periods unless the post is culturally relevant.",
   }),
 });
 

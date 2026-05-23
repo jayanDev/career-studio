@@ -27,6 +27,7 @@ export async function GET(_request: Request, context: { params: Promise<{ letter
     sections: [
       {
         children: [
+          ...(content.subject ? [new Paragraph({ text: `Subject: ${content.subject}` })] : []),
           new Paragraph({ text: content.headerContact }),
           new Paragraph({ text: content.recipientDetails }),
           new Paragraph({ text: content.opener }),
@@ -34,6 +35,7 @@ export async function GET(_request: Request, context: { params: Promise<{ letter
           ...(content.achievements.length
             ? [new Paragraph({ text: "Key Achievements", heading: HeadingLevel.HEADING_2 }), ...content.achievements.map((achievement) => new Paragraph({ text: achievement, bullet: { level: 0 } }))]
             : []),
+          ...(content.salaryExpectation ? [new Paragraph({ text: content.salaryExpectation })] : []),
           new Paragraph({ text: content.closing }),
           new Paragraph({ text: content.signature }),
         ],

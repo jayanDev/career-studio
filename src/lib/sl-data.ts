@@ -49,7 +49,47 @@ export const slCompanies = [
   "Hemas Holdings",
   "Softlogic Holdings",
   "Hayleys PLC",
-  "Lanka ORIX Leasing Company (LOLC)"
+  "Lanka ORIX Leasing Company (LOLC)",
+  "NDB Bank",
+  "DFCC Bank",
+  "Bank of Ceylon",
+  "People's Bank",
+  "Cargills Bank",
+  "CIC Holdings",
+  "Hirdaramani Group",
+  "Aitken Spence Hotels",
+  "Jetwing Hotels",
+  "Cinnamon Hotels",
+  "Dilmah Ceylon Tea",
+  "Maliban Biscuit Manufactories",
+  "Ceylon Biscuits Limited",
+  "Unilever Sri Lanka",
+  "Nestle Lanka",
+  "HCLTech Sri Lanka",
+  "Wiley Global Technology",
+  "IFS R&D International",
+  "WSO2 LLC",
+  "Asiri Health",
+  "Durdans Hospital",
+  "Nawaloka Hospitals",
+  "SriLankan Airlines",
+  "Expolanka Holdings",
+  "PickMe",
+  "Daraz Sri Lanka",
+  "CodeGen International",
+  "Cambio Software Engineering",
+  "Calcey Technologies",
+  "Zone24x7",
+  "Intervest Software Technologies",
+  "WSO2 Telco",
+  "Dialog Finance",
+  "Hutch Sri Lanka",
+  "SLT-Mobitel",
+  "LAUGFS Holdings",
+  "Tokyo Cement",
+  "ACL Cables",
+  "Sierra Construction",
+  "Access Engineering"
 ];
 
 export const slDistricts = [
@@ -78,4 +118,37 @@ export const slDistricts = [
   "Ratnapura",
   "Trincomalee",
   "Vavuniya"
+];
+
+export const slCertifications = [
+  "CA Sri Lanka",
+  "CMA Sri Lanka",
+  "AAT Sri Lanka",
+  "SLIM",
+  "CIPM Sri Lanka",
+  "CIMA",
+  "ACCA",
+  "BCS",
+  "AWS Certified Cloud Practitioner",
+  "Google Project Management Certificate"
+];
+
+export const slEducationTypes = [
+  "GCE O/L",
+  "GCE A/L - Physical Science",
+  "GCE A/L - Biological Science",
+  "GCE A/L - Commerce",
+  "GCE A/L - Arts",
+  "University Degree",
+  "Diploma",
+  "Professional Qualification"
+];
+
+export const slAdvancedLevelStreams = [
+  "Physical Science",
+  "Biological Science",
+  "Commerce",
+  "Arts",
+  "Technology",
+  "Common General"
 ];

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BarChart3, TrendingUp, Users, Target, Activity, Send, CheckCircle, XCircle, Code2, LineChart, Banknote } from "lucide-react";
+import { BarChart3, Users, Target, Activity, Send, CheckCircle, Code2, LineChart, Banknote } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -50,7 +50,14 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
   // We'll query a sample of open-to-work profiles to aggregate skills and salaries
   const marketProfiles = await prisma.talentProfile.findMany({
     where: { isOpenToWork: true },
-    select: { expectedSalary: true, skills: { select: { name: true } } },
+    select: {
+      expectedSalary: true,
+      noticePeriod: true,
+      city: true,
+      skills: { select: { name: true } },
+      educations: { take: 1, select: { institutionName: true } },
+      experiences: { take: 1, orderBy: { startDate: "desc" }, select: { companyName: true } },
+    },
     take: 500 // Limit for performance
   });
 
@@ -66,6 +73,23 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
   const topSkills = Object.entries(skillCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
+
+  const companyCounts: Record<string, number> = {};
+  const universityCounts: Record<string, number> = {};
+  const cityCounts: Record<string, number> = {};
+  const noticeCounts: Record<string, number> = {};
+  marketProfiles.forEach((profile) => {
+    const company = profile.experiences[0]?.companyName;
+    const university = profile.educations[0]?.institutionName;
+    if (company) companyCounts[company] = (companyCounts[company] || 0) + 1;
+    if (university) universityCounts[university] = (universityCounts[university] || 0) + 1;
+    if (profile.city) cityCounts[profile.city] = (cityCounts[profile.city] || 0) + 1;
+    if (profile.noticePeriod) noticeCounts[profile.noticePeriod] = (noticeCounts[profile.noticePeriod] || 0) + 1;
+  });
+  const topCompanies = Object.entries(companyCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topUniversities = Object.entries(universityCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topNotice = Object.entries(noticeCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
 
   // Aggregate Salaries (very simple parsing since it's a string)
   let salarySum = 0;
@@ -217,7 +241,61 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
             </Card>
           </div>
         </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          <InsightList title="Top current companies" items={topCompanies} empty="No company signals yet." />
+          <InsightList title="Top universities" items={topUniversities} empty="No education signals yet." />
+          <InsightList title="District / city clusters" items={topCities} empty="No location signals yet." />
+        </div>
+
+        <Card className="bg-white border-neutral-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Users className="size-5 text-teal-600" /> Hiring Strategy Signals
+            </CardTitle>
+            <CardDescription>Anonymised Talent Insights-style signals from open candidates.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-4">
+            <div className="rounded-xl border bg-neutral-50 p-4">
+              <p className="text-xs font-semibold text-neutral-500">Open profiles</p>
+              <p className="mt-1 text-2xl font-black text-neutral-950">{totalMarket}</p>
+            </div>
+            <div className="rounded-xl border bg-neutral-50 p-4">
+              <p className="text-xs font-semibold text-neutral-500">Salary samples</p>
+              <p className="mt-1 text-2xl font-black text-neutral-950">{salaryCount}</p>
+            </div>
+            <div className="rounded-xl border bg-neutral-50 p-4 md:col-span-2">
+              <p className="text-xs font-semibold text-neutral-500">Common notice periods</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {topNotice.map(([notice, count]) => (
+                  <span key={notice} className="rounded-md border bg-white px-2 py-1 text-xs font-medium text-neutral-700">
+                    {notice}: {count}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
+  );
+}
+
+function InsightList({ title, items, empty }: { title: string; items: [string, number][]; empty: string }) {
+  return (
+    <Card className="bg-white border-neutral-200 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {items.map(([label, count]) => (
+          <div key={label} className="flex items-center justify-between gap-3 text-sm">
+            <span className="truncate font-medium text-neutral-800">{label}</span>
+            <span className="rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-bold text-neutral-600">{count}</span>
+          </div>
+        ))}
+        {items.length === 0 ? <p className="text-sm text-neutral-500">{empty}</p> : null}
+      </CardContent>
+    </Card>
   );
 }

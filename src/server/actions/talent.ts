@@ -1,10 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import type { Locale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -119,7 +117,7 @@ const privacySchema = z.object({
   customSlug: z.string().trim().min(3).max(50).regex(/^[a-z0-9-]+$/, "Only lowercase alphanumeric characters and hyphens allowed").nullable().optional(),
   isPhonePublic: z.boolean(),
   isEmailPublic: z.boolean(),
-  visibility: z.enum(["public", "recruiters_only", "private"]),
+  visibility: z.enum(["public", "recruiters_only", "anonymous", "private"]),
 });
 
 // Helper to get or create talent profile for current user
@@ -243,7 +241,7 @@ export async function updateProfileCompletionScore(talentProfileId: string) {
   else if (daysSinceUpdate > 90) recencyMultiplier = 0.8;
   else if (daysSinceUpdate > 30) recencyMultiplier = 0.9;
 
-  let finalScore = Math.min(100, Math.round((baseScore + atsBoost) * recencyMultiplier));
+  const finalScore = Math.min(100, Math.round((baseScore + atsBoost) * recencyMultiplier));
 
   await prisma.talentProfile.update({
     where: { id: talentProfileId },
@@ -806,6 +804,14 @@ export async function respondToContactRequest(requestId: string, status: "accept
 
   // If accepted, add a Connection and start a Conversation automatically!
   if (status === "accepted") {
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    if (Date.now() - request.createdAt.getTime() <= sevenDaysMs) {
+      await prisma.recruiterProfile.updateMany({
+        where: { userId: request.recruiterId },
+        data: { contactCredits: { increment: 1 } },
+      });
+    }
+
     // Check if Connection already exists
     const userA = session.user.id;
     const userB = request.recruiterId;

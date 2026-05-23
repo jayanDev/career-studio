@@ -4,10 +4,9 @@ import { useState, useTransition } from "react";
 import { useDropzone } from "react-dropzone";
 import { 
   Sparkles, Upload, Plus, Trash, Loader2, Check, MapPin, Users, Edit2, 
-  CheckSquare, PlusCircle, Globe, Award, ShieldAlert, FileText, Link2, 
-  HelpCircle, Eye, RefreshCw, Smartphone
+  CheckSquare, PlusCircle, Globe, Award, FileText, Link2, 
+  RefreshCw, Smartphone
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,8 +29,7 @@ export function LinkedInClient({
   t: (key: string) => string;
   locale?: string;
 }) {
-  const router = useRouter();
-
+  void t;
   // Profile Mockup State
   const [profile, setProfile] = useState<{
     name: string;
@@ -49,6 +47,16 @@ export function LinkedInClient({
     featuredItems: string[];
     complianceMode: boolean;
     audienceMode: "local" | "global";
+    profileUrl: string;
+    hasOpenToWork: boolean;
+    hasOpenToServices: boolean;
+    lastPostDate: string;
+    postsPerWeek: number;
+    avgEngagement: number;
+    hashtags: string;
+    topEndorsedSkills: string;
+    regulatedIndustry: boolean;
+    diasporaMode: boolean;
   }>({
     name: "Chanuka Jeewantha",
     headline: "Full Stack Software Engineer | React, Next.js, Node.js",
@@ -78,6 +86,16 @@ export function LinkedInClient({
     featuredItems: ["GitHub Profile", "Personal Portfolio Website"],
     complianceMode: false,
     audienceMode: "global",
+    profileUrl: "https://linkedin.com/in/chanuka-jeewantha",
+    hasOpenToWork: false,
+    hasOpenToServices: false,
+    lastPostDate: "",
+    postsPerWeek: 0,
+    avgEngagement: 0,
+    hashtags: "#SriLankaTech, #ColomboTech",
+    topEndorsedSkills: "TypeScript, React, Next.js",
+    regulatedIndustry: false,
+    diasporaMode: false,
   });
 
   const [targetRole, setTargetRole] = useState("Senior Full Stack Engineer");
@@ -88,6 +106,8 @@ export function LinkedInClient({
   const [isAuditing, startAuditTransition] = useTransition();
   const [isScraping, setIsScraping] = useState(false);
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  const [isGeneratingPosts, setIsGeneratingPosts] = useState(false);
+  const [postPack, setPostPack] = useState<{ hooks: string[]; hashtags: string[]; best_time_to_post: string; story_post: string } | null>(null);
   
   // Job Description state
   const [jdUrl, setJdUrl] = useState("");
@@ -209,6 +229,27 @@ export function LinkedInClient({
     setOptimizerModal({ isOpen: false, section: "headline", variants: null });
   }
 
+  async function generatePostPack() {
+    setIsGeneratingPosts(true);
+    try {
+      const profileText = `Headline: ${profile.headline}\nAbout: ${profile.about}\nSkills: ${profile.skills.join(", ")}`;
+      const res = await fetch("/api/linkedin/generate-posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileText,
+          targetRole,
+          audienceMode: profile.audienceMode,
+          language: profile.audienceMode === "local" ? "en" : "en",
+        }),
+      });
+      const data = await res.json();
+      if (!data.error) setPostPack(data);
+    } finally {
+      setIsGeneratingPosts(false);
+    }
+  }
+
   // Trigger full audit backend action
   function handleRunFullAudit() {
     startAuditTransition(async () => {
@@ -225,6 +266,16 @@ export function LinkedInClient({
         formData.append("complianceMode", String(profile.complianceMode));
         formData.append("connections", String(profile.connections));
         formData.append("jdText", jdText);
+        formData.append("profileUrl", profile.profileUrl);
+        formData.append("hasOpenToWork", String(profile.hasOpenToWork));
+        formData.append("hasOpenToServices", String(profile.hasOpenToServices));
+        formData.append("lastPostDate", profile.lastPostDate);
+        formData.append("postsPerWeek", String(profile.postsPerWeek));
+        formData.append("avgEngagement", String(profile.avgEngagement));
+        formData.append("hashtags", profile.hashtags);
+        formData.append("topEndorsedSkills", profile.topEndorsedSkills);
+        formData.append("regulatedIndustry", String(profile.regulatedIndustry));
+        formData.append("diasporaMode", String(profile.diasporaMode));
 
         // Serialize structured text for the prompt evaluator
         let serialText = `Name: ${profile.name}\nHeadline: ${profile.headline}\n\nAbout/Summary:\n${profile.about}\n\n`;
@@ -236,6 +287,9 @@ export function LinkedInClient({
         if (profile.featuredPopulated && profile.featuredItems.length) {
           serialText += `Featured Links: ${profile.featuredItems.join(", ")}\n`;
         }
+        serialText += `Top Endorsed Skills: ${profile.topEndorsedSkills}\n`;
+        serialText += `Hashtags: ${profile.hashtags}\n`;
+        serialText += `Profile URL: ${profile.profileUrl}\n`;
         formData.append("profileText", serialText);
 
         await startLinkedInAuditAction(locale as any, formData);
@@ -363,6 +417,35 @@ export function LinkedInClient({
               />
             </div>
 
+            <div>
+              <label className="text-xs font-semibold text-neutral-500">Public Profile URL</label>
+              <Input
+                className="mt-1 text-xs h-9"
+                value={profile.profileUrl}
+                onChange={(e) => setProfile(prev => ({ ...prev, profileUrl: e.target.value }))}
+                placeholder="https://linkedin.com/in/your-name"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex items-center justify-between rounded-lg border bg-neutral-50 p-2.5 text-xs font-semibold text-neutral-700">
+                Open to work
+                <input
+                  type="checkbox"
+                  checked={profile.hasOpenToWork}
+                  onChange={(e) => setProfile(prev => ({ ...prev, hasOpenToWork: e.target.checked }))}
+                />
+              </label>
+              <label className="flex items-center justify-between rounded-lg border bg-neutral-50 p-2.5 text-xs font-semibold text-neutral-700">
+                Open to services
+                <input
+                  type="checkbox"
+                  checked={profile.hasOpenToServices}
+                  onChange={(e) => setProfile(prev => ({ ...prev, hasOpenToServices: e.target.checked }))}
+                />
+              </label>
+            </div>
+
             <div className="flex gap-2">
               <Button 
                 onClick={handleRunFullAudit} 
@@ -459,6 +542,118 @@ export function LinkedInClient({
             </div>
           )}
         </CardContent>
+      </Card>
+
+      <Card className="bg-white border-neutral-200 shadow-sm rounded-xl">
+        <CardHeader className="py-4 border-b">
+          <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+            <RefreshCw className="size-4 text-teal-700" />
+            Activity, Endorsements & Compliance Signals
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div>
+              <label className="text-xs font-semibold text-neutral-500">Last post date</label>
+              <Input
+                type="date"
+                className="mt-1 h-9 text-xs"
+                value={profile.lastPostDate}
+                onChange={(e) => setProfile(prev => ({ ...prev, lastPostDate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-500">Posts per week</label>
+              <Input
+                type="number"
+                min={0}
+                step="0.5"
+                className="mt-1 h-9 text-xs"
+                value={profile.postsPerWeek}
+                onChange={(e) => setProfile(prev => ({ ...prev, postsPerWeek: Number(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-500">Avg engagement</label>
+              <Input
+                type="number"
+                min={0}
+                className="mt-1 h-9 text-xs"
+                value={profile.avgEngagement}
+                onChange={(e) => setProfile(prev => ({ ...prev, avgEngagement: Number(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-500">Top endorsed skills</label>
+              <Input
+                className="mt-1 h-9 text-xs"
+                value={profile.topEndorsedSkills}
+                onChange={(e) => setProfile(prev => ({ ...prev, topEndorsedSkills: e.target.value }))}
+                placeholder="React, SQL, Leadership"
+              />
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+            <Input
+              className="text-xs"
+              value={profile.hashtags}
+              onChange={(e) => setProfile(prev => ({ ...prev, hashtags: e.target.value }))}
+              placeholder="#SriLankaTech, #ColomboTech"
+            />
+            <label className="flex items-center gap-2 rounded-md border px-3 text-xs font-semibold">
+              Diaspora
+              <input
+                type="checkbox"
+                checked={profile.diasporaMode}
+                onChange={(e) => setProfile(prev => ({ ...prev, diasporaMode: e.target.checked }))}
+              />
+            </label>
+            <label className="flex items-center gap-2 rounded-md border px-3 text-xs font-semibold">
+              Regulated
+              <input
+                type="checkbox"
+                checked={profile.regulatedIndustry}
+                onChange={(e) => setProfile(prev => ({ ...prev, regulatedIndustry: e.target.checked }))}
+              />
+            </label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white border-neutral-200 shadow-sm rounded-xl">
+        <CardHeader className="py-4 border-b">
+          <CardTitle className="text-sm font-bold text-neutral-900 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Edit2 className="size-4 text-teal-700" />
+              AI Post Generator
+            </span>
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={generatePostPack} disabled={isGeneratingPosts}>
+              {isGeneratingPosts ? <Loader2 className="size-3 animate-spin mr-1" /> : <Sparkles className="size-3 mr-1" />}
+              Generate pack
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        {postPack ? (
+          <CardContent className="grid gap-4 pt-5 md:grid-cols-[1fr_0.7fr]">
+            <div className="rounded-lg border bg-neutral-50 p-3">
+              <div className="text-[10px] font-bold uppercase text-neutral-400">Story post</div>
+              <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-neutral-700">{postPack.story_post}</p>
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-teal-50/40 p-3 text-xs text-teal-900">
+                Best time: {postPack.best_time_to_post}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {postPack.hashtags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="text-[10px]">{tag}</Badge>
+                ))}
+              </div>
+              {postPack.hooks.slice(0, 3).map((hook) => (
+                <div key={hook} className="rounded-md border bg-white p-2 text-xs text-neutral-700">{hook}</div>
+              ))}
+            </div>
+          </CardContent>
+        ) : null}
       </Card>
 
       {/* Main Sandbox switcher */}

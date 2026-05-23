@@ -12,6 +12,8 @@ const sectionTitles: Record<ResumeSectionKey, string> = {
   languages: "Languages",
   awards: "Awards",
   volunteering: "Volunteering",
+  publications: "Publications",
+  references: "References",
 };
 
 export function ResumePreview({
@@ -67,6 +69,8 @@ export function ResumePreview({
     inter: "Inter, sans-serif",
     roboto: "Roboto, sans-serif",
     merriweather: "Merriweather, serif",
+    "noto-sinhala": "'Noto Sans Sinhala', Inter, sans-serif",
+    "noto-tamil": "'Noto Sans Tamil', Inter, sans-serif",
   };
 
   return (
@@ -97,9 +101,21 @@ export function ResumePreview({
                 <p className="mt-3 text-sm text-neutral-600">
                   {[content.header.email, content.header.phone, content.header.location, content.header.linkedin].filter(Boolean).join(" | ")}
                 </p>
+                {content.mode === "local" ? (
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {[content.header.street, content.header.district, content.header.postalCode].filter(Boolean).join(" | ")}
+                    {content.header.expectedSalary ? ` | Expected ${content.header.expectedSalary} ${content.header.salaryPeriod}` : ""}
+                    {content.header.nic ? ` | NIC ${maskNic(content.header.nic, content.settings?.publicAccess !== "private")}` : ""}
+                  </p>
+                ) : null}
               </div>
+              {content.settings?.includePhoto && content.header.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={content.header.photoUrl} alt="" className="size-20 rounded-md object-cover" />
+              ) : null}
               {qrCodeUrl && (
                 <div className="flex flex-col items-center gap-1 shrink-0 text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qrCodeUrl} alt="Talent Profile QR Code" className="size-16 rounded border bg-white p-0.5 shadow-sm" />
                   <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-wider">Scan Profile</span>
                 </div>
@@ -109,7 +125,7 @@ export function ResumePreview({
         }
 
         return (
-          <section key={section} className="mt-6">
+          <section key={section} className={cn("mt-6", section === "references" && content.settings?.hideReferences && "hidden")}>
             <h3 className="text-sm font-bold uppercase tracking-[0.18em]" style={{ color: accentColor }}>{sectionTitles[section]}</h3>
             <div className="mt-3">{renderSection(section, content)}</div>
           </section>
@@ -158,7 +174,19 @@ function renderSection(section: ResumeSectionKey, content: ResumeContent) {
         </div>
       );
     case "skills":
-      return (
+      return content.settings?.showSkillRatings && content.skillRatings.length ? (
+        <div className="grid gap-2">
+          {content.skillRatings.filter((item) => item.name).map((skill) => (
+            <div key={skill.id} className="grid grid-cols-[140px_1fr_auto] items-center gap-3 text-sm">
+              <span className="font-medium text-neutral-700">{skill.name}</span>
+              <div className="h-1.5 rounded-full bg-neutral-100">
+                <div className="h-full rounded-full" style={{ width: `${skill.rating * 20}%`, backgroundColor: content.settings?.accentColor || "#0f766e" }} />
+              </div>
+              <span className="text-xs text-neutral-500">{skill.rating}/5</span>
+            </div>
+          ))}
+        </div>
+      ) : (
         <div className="flex flex-wrap gap-2">
           {content.skills.filter(Boolean).map((skill) => (
             <span key={skill} className="rounded-md bg-neutral-100 px-2.5 py-1 text-sm text-neutral-700">
@@ -228,7 +256,37 @@ function renderSection(section: ResumeSectionKey, content: ResumeContent) {
           ))}
         </div>
       );
+    case "publications":
+      return (
+        <div className="space-y-3">
+          {content.publications?.map((item) => (
+            <div key={item.id} className="text-sm leading-6">
+              <div className="font-semibold">{item.title || "Publication"}</div>
+              <div className="text-neutral-600">{[item.publisher, item.date].filter(Boolean).join(", ")}</div>
+              {item.url ? <div className="text-neutral-500">{item.url}</div> : null}
+            </div>
+          ))}
+        </div>
+      );
+    case "references":
+      if (content.settings?.hideReferences) return null;
+      return (
+        <div className="grid gap-3 md:grid-cols-2">
+          {content.references?.map((item) => (
+            <div key={item.id} className="text-sm leading-6">
+              <div className="font-semibold">{item.name || "Referee"}</div>
+              <div className="text-neutral-600">{[item.title, item.organization].filter(Boolean).join(", ")}</div>
+              <div className="text-neutral-500">{[item.phone, item.email].filter(Boolean).join(" | ")}</div>
+            </div>
+          ))}
+        </div>
+      );
     case "header":
       return null;
   }
+}
+
+function maskNic(nic: string, shouldMask: boolean) {
+  if (!shouldMask) return nic;
+  return nic.replace(/.(?=.{4})/g, "*");
 }
