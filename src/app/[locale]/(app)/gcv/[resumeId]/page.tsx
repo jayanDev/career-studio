@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { GcvEditorClient } from "@/components/feature/gcv/gcv-editor-client";
+import { ShareToggleButton } from "@/components/share-toggle-button";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { parseGcvTheme } from "@/lib/gcv-design";
@@ -54,9 +55,18 @@ export default async function GcvEditorPage({ params, searchParams }: GcvEditorP
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">{resume.title}</h1>
-        <p className="mt-2 text-sm text-neutral-600">{query.saved ? t("saved") : t("subtitle")}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">{resume.title}</h1>
+          <p className="mt-2 text-sm text-neutral-600">{query.saved ? t("saved") : t("subtitle")}</p>
+        </div>
+        <ShareToggleButton
+          kind="gcv"
+          id={resume.id}
+          initiallyShared={!!resume.shareToken}
+          initialToken={resume.shareToken}
+          locale={locale}
+        />
       </div>
       <GcvEditorClient
         locale={locale}

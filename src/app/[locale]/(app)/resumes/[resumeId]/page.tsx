@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { ResumeEditorClient } from "@/components/feature/resumes/resume-editor-client";
+import { ShareToggleButton } from "@/components/share-toggle-button";
 import { Button } from "@/components/ui/button";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
@@ -66,6 +67,13 @@ export default async function ResumeEditorPage({ params }: ResumeEditorPageProps
               Bundle
             </Link>
           </Button>
+          <ShareToggleButton
+            kind="resume"
+            id={resume.id}
+            initiallyShared={!!resume.shareToken}
+            initialToken={resume.shareToken}
+            locale={locale}
+          />
         </div>
       </div>
       <ResumeEditorClient

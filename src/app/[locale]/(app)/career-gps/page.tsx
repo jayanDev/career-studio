@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Brain, CheckCircle2, Compass, Globe2, GraduationCap, Lock, Route, Share2, Sparkles, Target, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { ShareToggleButton } from "@/components/share-toggle-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -250,10 +251,23 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
                       </div>
                     </div>
                   </div>
-                  <div className="rounded-lg border bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Plan Strength</p>
-                    <div className="mt-2 text-4xl font-semibold text-neutral-950">{planData?.plan_strength.score ?? 0}</div>
-                    <p className="mt-1 text-xs leading-5 text-neutral-600">{planData?.plan_strength.label || planStrengthLabel(planData?.plan_strength.score ?? 0)}</p>
+                  <div className="rounded-lg border bg-white p-5 space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Plan Strength</p>
+                      <div className="mt-2 text-4xl font-semibold text-neutral-950">{planData?.plan_strength.score ?? 0}</div>
+                      <p className="mt-1 text-xs leading-5 text-neutral-600">{planData?.plan_strength.label || planStrengthLabel(planData?.plan_strength.score ?? 0)}</p>
+                    </div>
+                    {selectedPlan ? (
+                      <div className="border-t pt-3">
+                        <ShareToggleButton
+                          kind="career-gps"
+                          id={selectedPlan.id}
+                          initiallyShared={!!selectedPlan.shareToken}
+                          initialToken={selectedPlan.shareToken}
+                          locale={locale}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 

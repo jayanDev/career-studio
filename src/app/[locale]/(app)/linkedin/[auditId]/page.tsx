@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { ShareToggleButton } from "@/components/share-toggle-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,6 +162,13 @@ export default async function LinkedInAuditPage({ params }: LinkedInAuditPagePro
             <span className="text-3xl font-extrabold text-teal-700">{overall}</span>
             <span className="text-[9px] font-bold text-teal-600/70">/100</span>
           </div>
+          <ShareToggleButton
+            kind="linkedin"
+            id={audit.id}
+            initiallyShared={!!audit.shareToken}
+            initialToken={audit.shareToken}
+            locale={locale}
+          />
         </div>
       </div>
 

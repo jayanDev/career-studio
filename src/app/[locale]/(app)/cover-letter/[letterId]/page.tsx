@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { CoverLetterEditorClient } from "@/components/feature/cover-letter/cover-letter-editor-client";
+import { ShareToggleButton } from "@/components/share-toggle-button";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -47,19 +48,30 @@ export default async function CoverLetterEditorPage({ params, searchParams }: Co
   const versionCount = await prisma.coverLetterVersion.count({ where: { coverLetterId: letter.id } });
 
   return (
-    <CoverLetterEditorClient
-      locale={locale}
-      letter={{
-        id: letter.id,
-        title: letter.title,
-        jobTitle: letter.jobTitle,
-        companyName: letter.companyName,
-        jobDescription: letter.jobDescription,
-        tone: letter.tone,
-      }}
-      initialContent={content}
-      saved={Boolean(query.saved)}
-      versionCount={versionCount}
-    />
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <ShareToggleButton
+          kind="cover-letter"
+          id={letter.id}
+          initiallyShared={!!letter.shareToken}
+          initialToken={letter.shareToken}
+          locale={locale}
+        />
+      </div>
+      <CoverLetterEditorClient
+        locale={locale}
+        letter={{
+          id: letter.id,
+          title: letter.title,
+          jobTitle: letter.jobTitle,
+          companyName: letter.companyName,
+          jobDescription: letter.jobDescription,
+          tone: letter.tone,
+        }}
+        initialContent={content}
+        saved={Boolean(query.saved)}
+        versionCount={versionCount}
+      />
+    </div>
   );
 }
