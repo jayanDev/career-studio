@@ -126,7 +126,7 @@ Be constructive, specific, and encouraging. Score fairly but honestly.`;
 }
 
 export async function submitInterviewTurnAction(input: z.infer<typeof submitTurnSchema>) {
-  const user = await requireUser();
+  await requireUser();
   const parsed = submitTurnSchema.parse(input);
   const question = await prisma.interviewQuestion.findFirst({
     where: { id: parsed.questionId, isActive: true },

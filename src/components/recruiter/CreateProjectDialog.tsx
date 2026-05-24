@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Plus, FolderPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,7 +20,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { createProject } from "@/server/actions/recruiter";
 
 export function CreateProjectDialog() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", description: "" });
@@ -32,12 +30,12 @@ export function CreateProjectDialog() {
 
     setIsLoading(true);
     try {
-      const project = await createProject(formData.name, formData.description);
+      await createProject(formData.name, formData.description);
       toast.success("Project created successfully!");
       setOpen(false);
       setFormData({ name: "", description: "" });
-      // Redirect to the new project board
-      // router.push(`/en/talent-pool/projects/${project.id}`);
+      // TODO: redirect to /en/talent-pool/projects/<project.id> once
+      // createProject returns the new row's id.
     } catch (error: any) {
       toast.error(error.message || "Failed to create project");
     } finally {

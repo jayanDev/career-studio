@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
 import { CompanyProfileForm } from "@/components/recruiter/CompanyProfileForm";
@@ -14,7 +13,7 @@ type CompanyProfilePageProps = {
   params: Promise<{ locale: string }>;
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+export function generateMetadata(): Metadata {
   return {
     title: "Recruiter Company Profile - Career Studio",
     description: "Manage your recruiter identity and company profile details to reach candidates.",

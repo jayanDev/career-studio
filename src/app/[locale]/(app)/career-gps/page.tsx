@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 
 import { AiUnavailableBanner, isAiAvailable } from "@/components/ai-unavailable-banner";
 import { CareerCompareCard } from "@/components/feature/career-gps/career-compare";
+import { RefinementCard } from "@/components/feature/career-gps/refinement-card";
 import { RiasecAssessment } from "@/components/feature/career-gps/riasec-assessment";
 import { ShareToggleButton } from "@/components/share-toggle-button";
 import { Badge } from "@/components/ui/badge";
@@ -323,6 +324,8 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
                     ))}
                   </div>
                 </div>
+
+                {selectedPlan ? <RefinementCard planId={selectedPlan.id} /> : null}
 
                 {planData?.constellation && planData.constellation.length >= 2 ? (
                   <CareerCompareCard constellation={planData.constellation} />

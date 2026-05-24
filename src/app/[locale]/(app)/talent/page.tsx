@@ -17,7 +17,9 @@ type TalentPageProps = {
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale: rawLocale } = await params;
-  const locale = isLocale(rawLocale) ? rawLocale : defaultLocale;
+  // resolve locale to validate the route param even though we don't currently
+  // localize the metadata strings.
+  void (isLocale(rawLocale) ? rawLocale : defaultLocale);
   return {
     title: "Talent Profile Dashboard - Career Studio",
     description: "Manage your professional career profile and respond to recruiter contact inquiries.",
@@ -96,8 +98,8 @@ export default async function TalentPage({ params }: TalentPageProps) {
         await prisma.candidateBlock.create({
           data: { talentProfileId: profile.id, companyId }
         });
-      } catch (e) {
-        // Ignore unique constraint errors
+      } catch {
+        // Ignore unique constraint errors (block already exists).
       }
     }
   };

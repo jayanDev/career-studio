@@ -506,7 +506,7 @@ export function scoreResumeText(text: string, jobDescription = ""): AtsScoreResu
         description: b.text,
         parsedOk: true
       })),
-      education: bulletsAudited.filter(b => b.section === "Education").map(b => ({
+      education: bulletsAudited.filter(b => b.section === "Education").map(() => ({
         degree: "Academic Degree",
         institution: "Educational Institution",
         parsedOk: true

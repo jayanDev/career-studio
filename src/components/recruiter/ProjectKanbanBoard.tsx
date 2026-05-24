@@ -26,7 +26,7 @@ const STAGES = [
 
 export function ProjectKanbanBoard({ project, locale }: any) {
   const [candidates, setCandidates] = useState(project.candidates);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
@@ -61,7 +61,7 @@ export function ProjectKanbanBoard({ project, locale }: any) {
       try {
         await updateCandidateStage(id, stageId);
         toast.success("Pipeline stage updated");
-      } catch (error) {
+      } catch {
         toast.error("Failed to update candidate stage");
         setCandidates(previousCandidates); // Revert on failure
       }
@@ -89,7 +89,7 @@ export function ProjectKanbanBoard({ project, locale }: any) {
       try {
         await bulkUpdateCandidateStages(idsToMove, stageId);
         toast.success(`Moved ${idsToMove.length} candidates`);
-      } catch (error) {
+      } catch {
         toast.error("Failed to move candidates");
         setCandidates(previousCandidates);
       }

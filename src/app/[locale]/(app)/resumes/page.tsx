@@ -11,7 +11,7 @@ import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { featuredResumeTemplates } from "@/lib/resume-templates";
-import { createResumeFromForm, deleteResumeAction, duplicateResumeAction } from "@/server/actions/resumes/create-resume";
+import { createResumeFromForm, duplicateResumeAction } from "@/server/actions/resumes/create-resume";
 
 type ResumesPageProps = {
   params: Promise<{ locale: string }>;

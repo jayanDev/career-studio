@@ -38,7 +38,9 @@ export function InterviewPracticeClient({
     sampleAnswer: string;
   };
 }) {
-  const [questionId, setQuestionId] = useState(questions[0]?.id ?? "");
+  // Question stays fixed for the lifetime of this client; future iteration
+  // could expose a setter for an in-session question switcher.
+  const [questionId] = useState(questions[0]?.id ?? "");
   const [answer, setAnswer] = useState("");
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [feedbacks, setFeedbacks] = useState<InterviewFeedbackResult[]>([]);
@@ -54,7 +56,9 @@ export function InterviewPracticeClient({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const selected = questions.find((question) => question.id === questionId);
 
-  // Initialize history when question changes
+  // Initialize history when the chosen question changes. `selected` is
+  // derived from `questionId` so re-running only when `questionId`
+  // changes is intentional.
   useEffect(() => {
     if (selected) {
       setHistory([
@@ -66,6 +70,7 @@ export function InterviewPracticeClient({
       setAnswer("");
       stopRecording();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionId]);
 
   // Clean up recording on unmount

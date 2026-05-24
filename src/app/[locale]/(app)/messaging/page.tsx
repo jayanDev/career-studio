@@ -115,11 +115,11 @@ export default async function MessagingPage({ params, searchParams }: MessagingP
         })
       : [],
   ]);
-  const senderMap = new Map(senders.map((sender) => [sender.id, sender]));
-  const attachmentsByMessage = attachments.reduce<Map<string, typeof attachments>>((map, attachment) => {
-    map.set(attachment.messageId, [...(map.get(attachment.messageId) ?? []), attachment]);
-    return map;
-  }, new Map());
+  // senders + attachments fetched above are reserved for the chat panel
+  // (passed down via getMessages elsewhere); the parent server component
+  // doesn't currently render them, so we don't materialise the maps here.
+  void senders;
+  void attachments;
 
   return (
     <div className="space-y-6">

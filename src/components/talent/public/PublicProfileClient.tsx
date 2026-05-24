@@ -368,7 +368,7 @@ export function PublicProfileClient({
               <CardTitle className="text-lg">Professional Experience</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {profile.experiences.map((exp, idx) => (
+              {profile.experiences.map((exp) => (
                 <div key={exp.id} className="relative flex gap-4 first:pt-0 pt-6 border-t first:border-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-800">
                     <Briefcase className="size-5" />

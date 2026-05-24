@@ -20,7 +20,7 @@ type ShortlistPageProps = {
   params: Promise<{ locale: string }>;
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+export function generateMetadata(): Metadata {
   return {
     title: "My Saved Candidates - Career Studio",
     description: "Manage your shortlisted candidates, review saved profiles, and coordinate outreach pipelines.",

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
 import { ProfileBuilder } from "@/components/talent/ProfileBuilder";
@@ -14,7 +13,7 @@ type EditTalentPageProps = {
   params: Promise<{ locale: string }>;
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+export function generateMetadata(): Metadata {
   return {
     title: "Edit Career Profile - Career Studio",
     description: "Build and design your LinkedIn-style career profile, upload credentials and write details using AI.",
