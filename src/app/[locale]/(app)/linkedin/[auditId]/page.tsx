@@ -584,6 +584,36 @@ export default async function LinkedInAuditPage({ params }: LinkedInAuditPagePro
                 <div className="rounded-lg border border-teal-100 bg-teal-50/40 p-3 text-[11px] leading-5 text-teal-950">
                   <strong>{parsed.data.activity_analysis.cadence_label}.</strong> {parsed.data.activity_analysis.best_time_to_post}
                 </div>
+                {parsed.data.activity_analysis.hashtag_feedback.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Hashtag feedback</div>
+                    <ul className="space-y-1 text-[11px] leading-5 text-neutral-700">
+                      {parsed.data.activity_analysis.hashtag_feedback.slice(0, 5).map((tip) => (
+                        <li key={tip} className="flex gap-1.5"><span className="text-teal-700">•</span><span>{tip}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {parsed.data.activity_analysis.post_ideas.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Post ideas</div>
+                    <ul className="space-y-1 text-[11px] leading-5 text-neutral-700">
+                      {parsed.data.activity_analysis.post_ideas.slice(0, 5).map((idea) => (
+                        <li key={idea} className="rounded bg-neutral-50 p-2">{idea}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {parsed.data.activity_analysis.comment_templates.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Comment templates</div>
+                    <ul className="space-y-1 text-[11px] leading-5 text-neutral-700">
+                      {parsed.data.activity_analysis.comment_templates.slice(0, 4).map((tmpl) => (
+                        <li key={tmpl} className="rounded bg-neutral-50 p-2 italic">&ldquo;{tmpl}&rdquo;</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 <div className="space-y-2">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Suggested Skills</div>
                   <div className="flex flex-wrap gap-1.5">

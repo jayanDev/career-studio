@@ -7,6 +7,9 @@ import { getTranslations } from "next-intl/server";
 import { AiUnavailableBanner, isAiAvailable } from "@/components/ai-unavailable-banner";
 import { CareerCompareCard } from "@/components/feature/career-gps/career-compare";
 import { RefinementCard } from "@/components/feature/career-gps/refinement-card";
+import { GeneratingPoller } from "@/components/feature/career-gps/generating-poller";
+import { ConstellationFlow } from "@/components/feature/career-gps/constellation-flow";
+import { MockInterviewChat } from "@/components/feature/career-gps/mock-interview-chat";
 import { RiasecAssessment } from "@/components/feature/career-gps/riasec-assessment";
 import { ShareToggleButton } from "@/components/share-toggle-button";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +118,7 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
   const t = await getTranslations({ locale, namespace: "phase4.careerGps" });
   const session = await auth();
   const action = generateCareerGpsPlanAction.bind(null, locale);
+  const selectedSessionId = single(query.session);
   const selectedPlanId = single(query.plan);
   const userSessions = session?.user?.id
     ? await prisma.careerGPSSession.findMany({
@@ -245,7 +249,9 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
             <CardTitle>{t("planTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            {parsedPlan?.success ? (
+            {selectedSessionId ? (
+              <GeneratingPoller sessionId={selectedSessionId} />
+            ) : parsedPlan?.success ? (
               <>
                 <div className="grid gap-4 lg:grid-cols-[1fr_220px]">
                   <div className="rounded-lg border bg-neutral-50 p-5">
@@ -290,26 +296,8 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
                     </div>
                     <Badge variant="outline" className="rounded-md">{planData?.constellation.length ?? 0} careers</Badge>
                   </div>
-                  <div className="relative mt-4 h-[360px] overflow-hidden rounded-lg bg-neutral-950">
-                    <div className="absolute left-1/2 top-1/2 grid size-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-teal-300 bg-teal-400/20 text-center text-xs font-semibold text-teal-50">
-                      Your identity
-                    </div>
-                    {planData?.constellation.map((node) => (
-                      <div
-                        key={node.id}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 p-2 text-center text-[10px] leading-4 text-white shadow"
-                        style={{
-                          left: `${node.x}%`,
-                          top: `${node.y}%`,
-                          width: `${64 + node.match / 2}px`,
-                          height: `${64 + node.match / 2}px`,
-                          backgroundColor: domainColor(node.domain),
-                        }}
-                        title={`${node.role}: ${node.summary}`}
-                      >
-                        <span className="line-clamp-3">{node.role}</span>
-                      </div>
-                    ))}
+                  <div className="mt-4">
+                    <ConstellationFlow items={planData?.constellation ?? []} />
                   </div>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {planData?.constellation.slice(0, 6).map((node) => (
@@ -359,6 +347,9 @@ export default async function CareerGpsPage({ params, searchParams }: CareerGpsP
                         >
                           Cover letter
                         </Link>
+                      </div>
+                      <div className="mt-3 border-t pt-3">
+                        <MockInterviewChat targetRole={pathway.role} />
                       </div>
                     </div>
                   ))}

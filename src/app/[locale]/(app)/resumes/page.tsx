@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { featuredResumeTemplates } from "@/lib/resume-templates";
+import { ResumeTemplateGallery } from "@/components/feature/resumes/template-gallery";
 import { createResumeFromForm, duplicateResumeAction } from "@/server/actions/resumes/create-resume";
 
 type ResumesPageProps = {
@@ -72,34 +72,7 @@ export default async function ResumesPage({ params }: ResumesPageProps) {
                </div>
             </div>
             
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-neutral-600 uppercase">Select Template</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                {featuredResumeTemplates.map((template) => (
-                   <label key={template.templateKey} className="cursor-pointer group relative">
-                      <input type="radio" name="templateKey" value={template.templateKey} className="peer sr-only" required />
-                      <div className="border-2 rounded-xl p-2 peer-checked:border-teal-600 peer-checked:bg-teal-50 peer-checked:ring-4 peer-checked:ring-teal-600/10 transition-all aspect-[1/1.3] bg-white flex flex-col hover:border-teal-300">
-                         {/* Visual thumbnail placeholder representing a document layout */}
-                         <div className="bg-neutral-50 rounded flex-1 mb-2 border border-slate-100 flex flex-col p-1.5 gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                            <div className="h-1.5 w-1/2 bg-slate-300 rounded-full" />
-                            <div className="h-0.5 w-1/3 bg-slate-200 rounded-full" />
-                            <div className="h-px w-full bg-slate-100 my-1" />
-                            <div className="flex gap-1 flex-1">
-                               <div className="w-1/3 h-full bg-slate-200/50 rounded-sm" />
-                               <div className="flex-1 h-full bg-slate-100 rounded-sm" />
-                            </div>
-                         </div>
-                         <div className="text-center font-semibold text-[11px] truncate px-1 text-slate-800 leading-tight">
-                           {template.roleName}
-                         </div>
-                         <div className="text-center text-[9px] text-slate-500 font-medium">
-                           {template.category}
-                         </div>
-                      </div>
-                   </label>
-                ))}
-              </div>
-            </div>
+            <ResumeTemplateGallery />
             
             <div className="flex justify-end pt-2">
                <Button type="submit" size="lg" className="bg-teal-700 text-white hover:bg-teal-800 font-semibold px-8 shadow-sm">

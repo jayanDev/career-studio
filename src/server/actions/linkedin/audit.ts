@@ -284,6 +284,37 @@ export async function startLinkedInAuditAction(locale: Locale, formData: FormDat
     }
   }
 
+  const uploadedPhoto = formData.get("photoFile");
+  let photoAnalysisFeedback = "No photo provided for analysis.";
+  let photoScore = 0;
+  if (uploadedPhoto instanceof File && uploadedPhoto.size > 0 && uploadedPhoto.type.startsWith("image/")) {
+    const photoBuffer = Buffer.from(await uploadedPhoto.arrayBuffer());
+    const photoPrompt = `You are a Professional LinkedIn Recruiter. 
+Analyze the provided profile photo. Does it look professional? Is the lighting good? Is the background clean? Does the person look approachable?
+Give a score from 0 to 10 and 2-3 specific feedback points.
+Format as JSON: { "score": 8, "feedback": ["Great lighting", "Background is a bit cluttered"] }`;
+    
+    try {
+      const photoRes = await generateObject({
+        model: geminiModel,
+        schema: z.object({ score: z.number(), feedback: z.array(z.string()) }),
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text" as const, text: photoPrompt },
+              { type: "file" as const, data: photoBuffer, mimeType: uploadedPhoto.type }
+            ]
+          }
+        ]
+      });
+      photoScore = photoRes.object.score;
+      photoAnalysisFeedback = JSON.stringify(photoRes.object.feedback);
+    } catch (err) {
+      console.error("Photo analysis failed", err);
+    }
+  }
+
   const parsed = auditFormSchema.parse({
     targetRole: formValue(formData, "targetRole"),
     profileText,
@@ -416,6 +447,11 @@ ${parsed.profileText.slice(0, 15000)}
 """
 
 ${parsed.jdText ? `TARGET JOB DESCRIPTION TO MATCH AGAINST:\n"""\n${parsed.jdText.slice(0, 5000)}\n"""\n` : ""}
+
+PHOTO ANALYSIS:
+Photo Score: ${photoScore}/10
+Photo Feedback: ${photoAnalysisFeedback}
+(Include this in the profile_media_audit section of your response)
 
 DIMENSION SCORING INSTRUCTIONS (Out of 25 each):
 - profile_strength (25 pts): photo (4), custom banner (3), headline quality and length (6), about section hook (6), clean vanity URL (3), location/connections (3).

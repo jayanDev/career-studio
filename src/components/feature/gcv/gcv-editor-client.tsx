@@ -24,7 +24,7 @@ import {
   type GcvBlock,
   type GcvTheme,
 } from "@/lib/gcv-design";
-import type { ResumeContent } from "@/lib/resume-content";
+import { createId, type ResumeContent } from "@/lib/resume-content";
 import { updateGcvResumeAction } from "@/server/actions/resumes/create-resume";
 
 export function GcvEditorClient({
@@ -211,6 +211,138 @@ export function GcvEditorClient({
             </Field>
             <Field label="Portfolio embeds">
               <Textarea rows={4} value={portfolioText} onChange={(event) => setPortfolioText(event.target.value)} placeholder="YouTube, Behance, Dribbble, GitHub, CodePen, portfolio links" />
+            </Field>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white">
+          <CardHeader>
+            <CardTitle>Custom sections</CardTitle>
+            <p className="text-xs text-neutral-500">Optional — leave any blank to hide.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Field label="Languages (one per line, format: Sinhala — Native)">
+              <Textarea
+                rows={3}
+                value={content.languages.map((l) => `${l.name}${l.proficiency ? ` — ${l.proficiency}` : ""}`).join("\n")}
+                onChange={(event) =>
+                  setContent((current) => ({
+                    ...current,
+                    languages: event.target.value
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                      .map((line) => {
+                        const [name = "", proficiency = ""] = line.split(/\s+—\s+|\s+-\s+/);
+                        return { id: createId(), name: name.trim(), proficiency: proficiency.trim() };
+                      }),
+                  }))
+                }
+                placeholder="English — Native\nSinhala — Fluent\nTamil — Conversational"
+              />
+            </Field>
+            <Field label="Awards (Name — Issuer — Year)">
+              <Textarea
+                rows={3}
+                value={content.awards.map((a) => `${a.name}${a.issuer ? ` — ${a.issuer}` : ""}${a.date ? ` — ${a.date}` : ""}`).join("\n")}
+                onChange={(event) =>
+                  setContent((current) => ({
+                    ...current,
+                    awards: event.target.value
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                      .map((line) => {
+                        const [name = "", issuer = "", date = ""] = line.split(/\s+—\s+|\s+-\s+/);
+                        return { id: createId(), name: name.trim(), issuer: issuer.trim(), date: date.trim() };
+                      }),
+                  }))
+                }
+                placeholder="Dean's List — University of Moratuwa — 2023"
+              />
+            </Field>
+            <Field label="Volunteering (Role — Organization — Start — End)">
+              <Textarea
+                rows={3}
+                value={content.volunteering
+                  .map((v) =>
+                    [v.role, v.organization, v.startDate, v.endDate].filter(Boolean).join(" — "),
+                  )
+                  .join("\n")}
+                onChange={(event) =>
+                  setContent((current) => ({
+                    ...current,
+                    volunteering: event.target.value
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                      .map((line) => {
+                        const [role = "", organization = "", startDate = "", endDate = ""] = line.split(/\s+—\s+|\s+-\s+/);
+                        return {
+                          id: createId(),
+                          role: role.trim(),
+                          organization: organization.trim(),
+                          startDate: startDate.trim(),
+                          endDate: endDate.trim(),
+                          description: "",
+                        };
+                      }),
+                  }))
+                }
+                placeholder="Tutor — Code.lk Bootcamp — 2022 — 2023"
+              />
+            </Field>
+            <Field label="Publications (Title — Publisher — Date — URL)">
+              <Textarea
+                rows={3}
+                value={content.publications
+                  .map((p) => [p.title, p.publisher, p.date, p.url].filter(Boolean).join(" — "))
+                  .join("\n")}
+                onChange={(event) =>
+                  setContent((current) => ({
+                    ...current,
+                    publications: event.target.value
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                      .map((line) => {
+                        const [title = "", publisher = "", date = "", url = ""] = line.split(/\s+—\s+|\s+-\s+/);
+                        return { id: createId(), title: title.trim(), publisher: publisher.trim(), date: date.trim(), url: url.trim() };
+                      }),
+                  }))
+                }
+                placeholder="Building scalable services in Sri Lanka — Medium — 2024 — https://..."
+              />
+            </Field>
+            <Field label="References (Name — Title — Organization — Phone — Email)">
+              <Textarea
+                rows={3}
+                value={content.references
+                  .map((r) => [r.name, r.title, r.organization, r.phone, r.email].filter(Boolean).join(" — "))
+                  .join("\n")}
+                onChange={(event) =>
+                  setContent((current) => ({
+                    ...current,
+                    references: event.target.value
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                      .map((line) => {
+                        const [name = "", title = "", organization = "", phone = "", email = ""] = line.split(/\s+—\s+|\s+-\s+/);
+                        return {
+                          id: createId(),
+                          name: name.trim(),
+                          title: title.trim(),
+                          organization: organization.trim(),
+                          phone: phone.trim(),
+                          email: email.trim(),
+                          relationship: "",
+                        };
+                      }),
+                  }))
+                }
+                placeholder="Mr Nuwan Perera — Engineering Manager — WSO2 — +94 77 123 4567 — nuwan@example.com"
+              />
             </Field>
           </CardContent>
         </Card>
