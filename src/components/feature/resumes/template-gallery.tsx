@@ -3,16 +3,16 @@
 /**
  * Resume template gallery (P1-9 from the CV Builder roadmap).
  *
- * Replaces the static 6-template grid with a 60-template (20 roles × 3
- * tiers) browsable gallery. CSS-based thumbnails vary by tier:
- *   - basic    one-column minimalist
- *   - pro      two-column sidebar
- *   - premium  designer header band + content blocks
+ * 60-template (20 roles × 3 tiers) browsable gallery. Each thumbnail
+ * loads a tier-specific SVG from /public/templates/{basic,pro,premium}.svg
+ * so the same image represents every role in that tier (cheap and
+ * consistent — designed per-role SVGs are a future polish step).
  *
  * Filters: tier (all / basic / pro / premium) and free-text role
  * search. Selection drives a hidden `templateKey` input the parent
  * form submits.
  */
+/* eslint-disable @next/next/no-img-element -- static SVG thumbnails sized via aspect-ratio; next/image would require width/height tokens */
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
@@ -116,10 +116,12 @@ function TemplateCard({
             : "border-neutral-200 hover:border-teal-300"
         }`}
       >
-        <div className="aspect-[3/4] overflow-hidden rounded bg-neutral-50">
-          {template.category === "basic" ? <BasicThumbnail /> : null}
-          {template.category === "pro" ? <ProThumbnail /> : null}
-          {template.category === "premium" ? <PremiumThumbnail /> : null}
+        <div className="aspect-[3/4] overflow-hidden rounded bg-neutral-50 relative">
+          <img 
+            src={`/templates/${template.category}.svg`} 
+            alt={`${template.roleName} ${template.category} template`}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div className="mt-2 px-1">
           <div className="truncate text-xs font-semibold text-neutral-900">{template.roleName}</div>
@@ -144,68 +146,3 @@ function TemplateCard({
   );
 }
 
-function BasicThumbnail() {
-  return (
-    <div className="flex h-full flex-col gap-1.5 p-2 text-neutral-300">
-      <div className="h-2 w-1/2 rounded-full bg-neutral-300" />
-      <div className="h-1 w-1/3 rounded-full bg-neutral-200" />
-      <div className="my-1 h-px w-full bg-neutral-200" />
-      <div className="h-1 w-2/3 rounded-full bg-neutral-200" />
-      <div className="h-1 w-3/4 rounded-full bg-neutral-200" />
-      <div className="h-1 w-1/2 rounded-full bg-neutral-200" />
-      <div className="my-1 h-px w-full bg-neutral-200" />
-      <div className="h-1 w-2/3 rounded-full bg-neutral-200" />
-      <div className="h-1 w-1/2 rounded-full bg-neutral-200" />
-    </div>
-  );
-}
-
-function ProThumbnail() {
-  return (
-    <div className="flex h-full gap-1 p-2 text-teal-200">
-      <div className="flex w-1/3 flex-col gap-1 rounded bg-teal-50 p-1.5">
-        <div className="size-5 rounded-full bg-teal-200" />
-        <div className="h-1 w-3/4 rounded-full bg-teal-200" />
-        <div className="h-1 w-1/2 rounded-full bg-teal-200" />
-        <div className="mt-1 h-px w-full bg-teal-100" />
-        <div className="h-1 w-2/3 rounded-full bg-teal-200" />
-        <div className="h-1 w-3/4 rounded-full bg-teal-200" />
-        <div className="h-1 w-1/2 rounded-full bg-teal-200" />
-      </div>
-      <div className="flex flex-1 flex-col gap-1 p-1">
-        <div className="h-2 w-1/2 rounded-full bg-teal-700" />
-        <div className="h-1 w-1/3 rounded-full bg-teal-300" />
-        <div className="my-1 h-px w-full bg-neutral-200" />
-        <div className="h-1 w-3/4 rounded-full bg-neutral-200" />
-        <div className="h-1 w-1/2 rounded-full bg-neutral-200" />
-        <div className="h-1 w-2/3 rounded-full bg-neutral-200" />
-        <div className="my-1 h-px w-full bg-neutral-200" />
-        <div className="h-1 w-2/3 rounded-full bg-neutral-200" />
-      </div>
-    </div>
-  );
-}
-
-function PremiumThumbnail() {
-  return (
-    <div className="flex h-full flex-col text-amber-200">
-      <div className="flex h-8 items-center gap-2 bg-gradient-to-r from-amber-700 to-amber-900 px-2">
-        <div className="h-1.5 w-1/3 rounded-full bg-amber-100" />
-      </div>
-      <div className="flex flex-1 flex-col gap-1 p-2">
-        <div className="h-1 w-1/3 rounded-full bg-amber-300" />
-        <div className="h-1 w-1/4 rounded-full bg-amber-200" />
-        <div className="my-1 h-px w-full bg-neutral-200" />
-        <div className="grid grid-cols-2 gap-1">
-          <div className="h-1 rounded-full bg-neutral-200" />
-          <div className="h-1 rounded-full bg-neutral-200" />
-        </div>
-        <div className="h-1 w-2/3 rounded-full bg-neutral-200" />
-        <div className="h-1 w-3/4 rounded-full bg-neutral-200" />
-        <div className="my-1 h-px w-full bg-neutral-200" />
-        <div className="h-1 w-1/2 rounded-full bg-neutral-200" />
-        <div className="h-1 w-2/3 rounded-full bg-neutral-200" />
-      </div>
-    </div>
-  );
-}

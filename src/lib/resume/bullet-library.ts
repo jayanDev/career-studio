@@ -34,7 +34,43 @@ export const RESUME_BULLET_LIBRARY: BulletItem[] = [
   { id: "sls-2", role: "Sales Executive", actionVerb: "Negotiated", metric: "$500k contract", text: "Negotiated and closed a multi-year $500k contract with a Fortune 500 client after a 6-month competitive bidding process." },
 ];
 
-export function searchBullets(query: string, role?: string): BulletItem[] {
+import { prisma } from "@/lib/prisma";
+
+export async function searchBullets(query: string, role?: string): Promise<BulletItem[]> {
+  try {
+    const q = query.toLowerCase();
+    
+    // Attempt to fetch from DB first
+    const whereClause: any = {};
+    if (role) {
+      whereClause.role = { contains: role, mode: "insensitive" };
+    }
+    if (q) {
+      whereClause.OR = [
+        { text: { contains: q, mode: "insensitive" } },
+        { actionVerb: { contains: q, mode: "insensitive" } }
+      ];
+    }
+    
+    const dbBullets = await prisma.resumeBullet.findMany({
+      where: whereClause,
+      take: 50
+    });
+    
+    if (dbBullets && dbBullets.length > 0) {
+      return dbBullets.map((b: any) => ({
+        id: b.id,
+        role: b.role,
+        actionVerb: b.actionVerb,
+        metric: b.metric,
+        text: b.text
+      }));
+    }
+  } catch (error) {
+    // Silently fallback to static if DB is not available
+  }
+
+  // Fallback to static library
   const q = query.toLowerCase();
   return RESUME_BULLET_LIBRARY.filter(bullet => {
     const matchRole = role ? bullet.role.toLowerCase() === role.toLowerCase() : true;

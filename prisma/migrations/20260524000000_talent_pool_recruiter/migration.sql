@@ -363,6 +363,21 @@ CREATE TABLE "share_views" (
     CONSTRAINT "share_views_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "resume_bullets" (
+    "id" UUID NOT NULL,
+    "role" TEXT NOT NULL,
+    "actionVerb" TEXT NOT NULL,
+    "metric" TEXT NOT NULL DEFAULT '',
+    "text" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'General',
+    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "resume_bullets_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "talent_profiles_userId_key" ON "talent_profiles"("userId");
 
@@ -392,6 +407,9 @@ CREATE INDEX "share_views_type_itemId_idx" ON "share_views"("type", "itemId");
 
 -- CreateIndex
 CREATE INDEX "share_views_ownerId_idx" ON "share_views"("ownerId");
+
+-- CreateIndex
+CREATE INDEX "resume_bullets_role_idx" ON "resume_bullets"("role");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "resumes_shareToken_key" ON "resumes"("shareToken");
