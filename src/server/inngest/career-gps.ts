@@ -143,7 +143,7 @@ export const generateCareerGpsPlan = inngest.createFunction(
         `;
 
     // 4. Generate AI Plan
-    let generated = await step.run("generate-ai-plan", async () => {
+    const generated = await step.run("generate-ai-plan", async () => {
       let aiResult = fallbackPlan(inputProfile.primaryRole, resources);
       try {
         aiResult = careerGpsPlanResultSchema.parse(await generateJsonWithGemini(prompt, careerGpsPlanResultSchema));
