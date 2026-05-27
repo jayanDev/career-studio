@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { PlanTier } from "@prisma/client";
 
 export const scheduleLinkedInReAudits = inngest.createFunction(
-  { id: "schedule-linkedin-reaudits" },
-  { cron: "0 0 * * 1" }, // Run every Monday at midnight
-  // @ts-expect-error - inngest signature mismatch
-  async ({ step }: any) => {
+  {
+    id: "schedule-linkedin-reaudits",
+    triggers: [{ cron: "0 0 * * 1" }], // Every Monday at midnight UTC
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inngest step types vary by trigger
+  async ({ step }: { step: any }) => {
     let skip = 0;
     const batchSize = 100;
     let totalQueued = 0;

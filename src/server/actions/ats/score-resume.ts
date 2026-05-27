@@ -167,17 +167,26 @@ export async function scoreAtsResumeAction(formData: FormData): Promise<AtsScore
     fileType = uploaded.name.split(".").pop()?.toLowerCase() ?? "file";
     if (!resumeText.trim()) {
       // Real PDF / DOCX / plain-text extraction via unpdf + mammoth.
-      // Falls back to the lossy buffer string only as a last resort, and
-      // logs a warning so we know when that fired.
+      // We refuse to silently fall back to the lossy buffer-to-utf8 hack —
+      // that produces garbage text that the scorer treats as the user's
+      // real resume and assigns confident-but-wrong scores. Better to
+      // surface a clear error so the user re-exports their file.
       try {
         const extracted = await extractResume(buffer, {
           mime: detectedMime || browserMime,
           filename: uploaded.name,
         });
-        resumeText = extracted.text;
+        resumeText = extracted.text.trim();
       } catch (extractError) {
-        console.warn("[ats] structured extraction failed, falling back to buffer-to-utf8:", extractError);
-        resumeText = buffer.toString("utf8").replace(/[^\x09\x0a\x0d\x20-\x7E]+/g, " ").replace(/\s+/g, " ").trim();
+        console.error("[ats] structured extraction failed:", extractError);
+        throw new Error(
+          "We couldn't read text from your file. Please re-export it as a PDF or DOCX (avoid scanned PDFs), or paste the text directly.",
+        );
+      }
+      if (!resumeText) {
+        throw new Error(
+          "Your file parsed to zero readable text. If it's a scanned PDF, please OCR it first or paste the resume text directly.",
+        );
       }
     }
   }

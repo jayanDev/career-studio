@@ -14,8 +14,6 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.preprocess((val) => (val === "" ? undefined : val), z.string().url().optional()),
-  SUPABASE_URL: z.preprocess((val) => (val === "" ? undefined : val), z.string().url().optional()),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

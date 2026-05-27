@@ -51,10 +51,12 @@ function fallbackPlan(primaryRole: string, resources: Array<{ type: string; id: 
 }
 
 export const generateCareerGpsPlan = inngest.createFunction(
-  { id: "generate-career-gps-plan" },
-  { event: "career-gps/plan.generate" },
-  // @ts-expect-error - inngest signature mismatch
-  async ({ event, step }: any) => {
+  {
+    id: "generate-career-gps-plan",
+    triggers: [{ event: "career-gps/plan.generate" }],
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inngest event shape varies per trigger; typed at the schema level instead
+  async ({ event, step }: { event: any; step: any }) => {
     const { sessionId, userId, inputProfile, questions, goals } = event.data;
 
     // 1. Fetch user's plan tier
