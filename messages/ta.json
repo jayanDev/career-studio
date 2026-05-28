@@ -252,12 +252,12 @@
         "description": "Manage your Career Studio profile, account email, plan, quotas, and referral code."
       },
       "terms": {
-        "title": "Terms of Service - Career Studio",
-        "description": "Career Studio terms for using the migrated Next.js platform."
+        "title": "சேவை விதிமுறைகள் - Career Studio",
+        "description": "Career Studio தளத்தைப் பயன்படுத்துவதற்கான விதிமுறைகள். (Native translation pending — page body remains in English.)"
       },
       "privacy": {
-        "title": "Privacy Policy - Career Studio",
-        "description": "Career Studio privacy notes for account, profile, resume, and job-search data."
+        "title": "தனியுரிமைக் கொள்கை - Career Studio",
+        "description": "உங்கள் கணக்கு, சுயவிவரம் மற்றும் வேலைத் தேடல் தரவுக்கான Career Studio தனியுரிமை குறிப்புகள். (Native translation pending — page body remains in English.)"
       }
     },
     "auth": {
@@ -382,14 +382,14 @@
       }
     },
     "legal": {
-      "eyebrow": "Legal",
-      "termsTitle": "Terms of Service",
-      "termsDescription": "A lightweight Phase 2 placeholder for the public sign-up flow.",
+      "eyebrow": "சட்டப்பூர்வம்",
+      "termsTitle": "சேவை விதிமுறைகள்",
+      "termsDescription": "Career Studio தளத்தைப் பயன்படுத்துவதற்கான விதிமுறைகள்.",
       "termsBodyOne": "Career Studio is being migrated from Django to Next.js in phases. Features may be incomplete until their phase is delivered.",
       "termsBodyTwo": "Use the platform responsibly and only upload documents you are allowed to process.",
       "termsBodyThree": "Paid plans and billing actions remain disabled until Stripe flows are migrated in a later phase.",
-      "privacyTitle": "Privacy Policy",
-      "privacyDescription": "A lightweight Phase 2 placeholder for account and profile data handling.",
+      "privacyTitle": "தனியுரிமைக் கொள்கை",
+      "privacyDescription": "உங்கள் தரவை நாங்கள் சேகரிக்கும், பயன்படுத்தும் மற்றும் பாதுகாக்கும் முறை.",
       "privacyBodyOne": "Career Studio stores account, profile, resume, and job-search data against a UUID user account.",
       "privacyBodyTwo": "Uploaded files and AI features will use Supabase Storage and Gemini-backed services as later phases come online.",
       "privacyBodyThree": "Deletion, export, and detailed consent flows are deferred until the related data modules are migrated."
