@@ -3,6 +3,7 @@ import { BookOpenCheck, Clock, MessageSquareText, Search } from "lucide-react";
 import { Difficulty, InterviewCategory, Prisma } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 
+import { AiUnavailableBanner, isAiAvailable } from "@/components/ai-unavailable-banner";
 import { InterviewPracticeClient } from "@/components/feature/interview/interview-practice-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,7 @@ export default async function InterviewPage({ params, searchParams }: InterviewP
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">{t("title")}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">{t("subtitle")}</p>
       </div>
+      {isAiAvailable() ? null : <AiUnavailableBanner reason="no_key" />}
 
       <form className="grid gap-3 rounded-lg border bg-white p-4 lg:grid-cols-[1fr_180px_180px_auto]">
         <div className="relative">

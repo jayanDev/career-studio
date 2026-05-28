@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
+import { AiUnavailableBanner, isAiAvailable } from "@/components/ai-unavailable-banner";
 import { coverLetterTemplateGallery, coverLetterTonePreviews } from "@/lib/cover-letter-optimization";
 import { prisma } from "@/lib/prisma";
 import { parseCoverLetterContent } from "@/lib/resume-content";
@@ -72,6 +73,7 @@ export default async function CoverLetterPage({ params }: CoverLetterPageProps) 
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">{t("title")}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">{t("subtitle")}</p>
       </div>
+      {isAiAvailable() ? null : <AiUnavailableBanner reason="no_key" />}
       <Card className="bg-white">
         <CardHeader>
           <CardTitle>{t("wizardTitle")}</CardTitle>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { AiUnavailableBanner, isAiAvailable } from "@/components/ai-unavailable-banner";
 import { LinkedInClient } from "@/components/feature/linkedin/linkedin-client";
 
 type LinkedInPageProps = {
@@ -47,6 +48,7 @@ export default async function LinkedInPage({ params }: LinkedInPageProps) {
         <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">{t("title")}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">{t("subtitle")}</p>
       </div>
+      {isAiAvailable() ? null : <AiUnavailableBanner reason="no_key" />}
 
       <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-6">
