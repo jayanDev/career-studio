@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
 import createNextIntlPlugin from "next-intl/plugin";
 
 /**
@@ -33,4 +34,8 @@ const nextConfig: NextConfig = {
 
 const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
-export default withNextIntl(nextConfig);
+// @next/bundle-analyzer is a no-op unless ANALYZE=true is set in the
+// environment. Run `npm run analyze` to inspect bundle bloat.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
+
+export default withBundleAnalyzer(withNextIntl(nextConfig));

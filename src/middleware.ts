@@ -13,6 +13,24 @@ const intlMiddleware = createMiddleware({
   localePrefix: "always",
 });
 
+/**
+ * Per-request correlation id. Used in log lines so a production stack
+ * trace can be tied back to the originating request. We honour an
+ * inbound `x-request-id` (so an upstream proxy or load balancer can
+ * stamp one), otherwise generate a fresh UUID-ish string.
+ */
+function ensureRequestId(request: Request): string {
+  const inbound = request.headers.get("x-request-id");
+  if (inbound && inbound.length <= 80) return inbound;
+  // crypto.randomUUID exists on both Edge and Node middleware runtimes.
+  return crypto.randomUUID();
+}
+
+function applyRequestId<T extends NextResponse>(response: T, id: string): T {
+  response.headers.set("x-request-id", id);
+  return response;
+}
+
 const protectedRoutes = new Set([
   "/dashboard",
   "/admin",
@@ -60,10 +78,11 @@ function matchesRoute(pathname: string, route: string) {
 const { auth } = NextAuth(baseAuthConfig);
 
 export default auth((request) => {
+  const requestId = ensureRequestId(request);
   const { locale, appPath } = getLocalizedPath(request.nextUrl.pathname);
 
   if (!locale) {
-    return intlMiddleware(request);
+    return applyRequestId(intlMiddleware(request), requestId);
   }
 
   const needsAuth = Array.from(protectedRoutes).some((route) => matchesRoute(appPath, route));
@@ -72,13 +91,16 @@ export default auth((request) => {
     const signInUrl = new URL(`/${locale}/auth/sign-in`, request.url);
     signInUrl.searchParams.set("callbackUrl", `${request.nextUrl.pathname}${request.nextUrl.search}`);
 
-    return NextResponse.redirect(signInUrl);
+    return applyRequestId(NextResponse.redirect(signInUrl), requestId);
   }
 
   const requiredPlan = Object.entries(planGates).find(([route]) => matchesRoute(appPath, route))?.[1];
 
   if (matchesRoute(appPath, "/admin") && !request.auth?.user?.isStaff) {
-    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+    return applyRequestId(
+      NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url)),
+      requestId,
+    );
   }
 
   if (requiredPlan) {
@@ -89,11 +111,11 @@ export default auth((request) => {
       billingUrl.searchParams.set("upgrade", requiredPlan);
       billingUrl.searchParams.set("from", request.nextUrl.pathname);
 
-      return NextResponse.redirect(billingUrl);
+      return applyRequestId(NextResponse.redirect(billingUrl), requestId);
     }
   }
 
-  return intlMiddleware(request);
+  return applyRequestId(intlMiddleware(request), requestId);
 });
 
 export const config = {

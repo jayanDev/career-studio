@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
 import { prisma } from "@/lib/prisma";
+import { getRequestId } from "@/lib/request-id";
 import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -24,19 +25,23 @@ export const runtime = "nodejs";
  * we log them for later review.
  */
 export async function POST(request: Request) {
+  const reqId = getRequestId(request);
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const stripe = getStripe();
 
   if (!secret || !stripe) {
     return NextResponse.json(
       { error: "Stripe webhook not configured" },
-      { status: 503 },
+      { status: 503, headers: { "x-request-id": reqId } },
     );
   }
 
   const signature = request.headers.get("stripe-signature");
   if (!signature) {
-    return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing stripe-signature header" },
+      { status: 400, headers: { "x-request-id": reqId } },
+    );
   }
 
   // Raw request body required for signature verification.
@@ -46,8 +51,11 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(payload, signature, secret);
   } catch (error) {
-    console.warn("[stripe-webhook] signature verification failed:", error);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    console.warn("[stripe-webhook]", reqId, "signature verification failed:", error);
+    return NextResponse.json(
+      { error: "Invalid signature" },
+      { status: 400, headers: { "x-request-id": reqId } },
+    );
   }
 
   try {
@@ -69,15 +77,21 @@ export async function POST(request: Request) {
         await handleInvoiceFailed(event.data.object as Stripe.Invoice);
         break;
       default:
-        console.info("[stripe-webhook] unhandled event type:", event.type);
+        console.info("[stripe-webhook]", reqId, "unhandled event type:", event.type);
     }
   } catch (error) {
-    console.error("[stripe-webhook] handler failed for", event.type, error);
+    console.error("[stripe-webhook]", reqId, "handler failed for", event.type, error);
     // Return 500 so Stripe retries — better than silently losing the event.
-    return NextResponse.json({ error: "Handler failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Handler failed" },
+      { status: 500, headers: { "x-request-id": reqId } },
+    );
   }
 
-  return NextResponse.json({ received: true });
+  return NextResponse.json(
+    { received: true },
+    { headers: { "x-request-id": reqId } },
+  );
 }
 
 /* -------------------------------------------------------------------------- */

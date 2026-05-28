@@ -80,7 +80,9 @@ export function computeRiasecCode(answers: Record<string, number>): {
 
   for (const q of RIASEC_QUESTIONS) {
     const raw = answers[q.id];
-    if (typeof raw !== "number") continue;
+    // `typeof NaN === "number"` so we have to filter NaN explicitly — a
+    // bad form field can otherwise propagate NaN through the running total.
+    if (typeof raw !== "number" || !Number.isFinite(raw)) continue;
     const clamped = Math.max(1, Math.min(5, Math.round(raw)));
     scores[q.type] += clamped;
   }

@@ -318,6 +318,23 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
                   </Button>
                 </form>
               </div>
+              <div className="flex flex-col gap-3 rounded-md border border-sky-200 bg-sky-50 p-4 md:flex-row md:items-center md:justify-between">
+                <span>
+                  <span className="flex items-center gap-2 font-medium text-sky-900">
+                    <Download className="size-4" />
+                    Export my data
+                  </span>
+                  <span className="mt-1 block text-sm text-sky-900/75">
+                    Download every record we hold for you as a single JSON file. Satisfies your right of access under GDPR.
+                  </span>
+                </span>
+                <Button asChild variant="outline">
+                  <Link href="/api/account/export" target="_blank" rel="noreferrer">
+                    <Download className="size-4" />
+                    Download JSON
+                  </Link>
+                </Button>
+              </div>
               <DeleteAccountCard accountEmail={user.email ?? ""} />
             </CardContent>
           </Card>
