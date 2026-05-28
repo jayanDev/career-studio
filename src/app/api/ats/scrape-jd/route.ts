@@ -4,11 +4,16 @@ import { generateText } from "ai";
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 export async function POST(req: Request) {
+  const reqId = getRequestId(req);
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "x-request-id": reqId } },
+    );
   }
 
   // Prevent the endpoint being used as an open scraper.
@@ -56,9 +61,15 @@ ${cleanedHtml}
 Output ONLY the clean, structured job description text, formatted cleanly.`,
     });
 
-    return NextResponse.json({ jobDescription: response.text });
+    return NextResponse.json(
+      { jobDescription: response.text },
+      { headers: { "x-request-id": reqId } },
+    );
   } catch (error) {
-    console.error("Job description scraping failed:", error);
-    return NextResponse.json({ error: "Failed to scrape job description" }, { status: 500 });
+    console.error("[ats-scrape-jd]", reqId, "scrape failed:", error);
+    return NextResponse.json(
+      { error: "Failed to scrape job description" },
+      { status: 500, headers: { "x-request-id": reqId } },
+    );
   }
 }

@@ -1,3 +1,4 @@
+import { CookieConsentBanner } from "@/components/cookie-consent";
 import { PublicNav } from "@/components/nav/public-nav";
 import { defaultLocale, isLocale } from "@/i18n-config";
 import { getTranslations } from "next-intl/server";
@@ -43,6 +44,7 @@ export default async function PublicLayout({
           </div>
         </div>
       </footer>
+      <CookieConsentBanner locale={locale} />
     </div>
   );
 }

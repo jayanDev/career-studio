@@ -4,11 +4,16 @@ import { generateText } from "ai";
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 export async function POST(req: Request) {
+  const reqId = getRequestId(req);
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "x-request-id": reqId } },
+    );
   }
 
   const limited = await enforceRateLimit("ai", req, session.user.id);
@@ -43,9 +48,15 @@ Tailoring Rules:
 Output the tailored resume as clean markdown text.`,
     });
 
-    return NextResponse.json({ tailoredText: response.text });
+    return NextResponse.json(
+      { tailoredText: response.text },
+      { headers: { "x-request-id": reqId } },
+    );
   } catch (error) {
-    console.error("AI resume tailoring failed:", error);
-    return NextResponse.json({ error: "Failed to tailor resume" }, { status: 500 });
+    console.error("[ats-tailor-resume]", reqId, "tailor failed:", error);
+    return NextResponse.json(
+      { error: "Failed to tailor resume" },
+      { status: 500, headers: { "x-request-id": reqId } },
+    );
   }
 }

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 const rewriteMultiSchema = z.object({
   sectionType: z.string(),
@@ -22,9 +23,13 @@ const multiVariantResponseSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const reqId = getRequestId(req);
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "x-request-id": reqId } },
+    );
   }
 
   const limited = await enforceRateLimit("ai", req, session.user.id);
@@ -61,15 +66,18 @@ Return the 5 options in JSON matching the schema. Do not include markdown wraps 
       prompt,
     });
 
-    return NextResponse.json(response.object);
+    return NextResponse.json(response.object, { headers: { "x-request-id": reqId } });
   } catch (error) {
-    console.error("Multi-variant rewrite generation failed:", error);
+    console.error("[linkedin-rewrite-multi]", reqId, "generation failed:", error);
     if (parsed) {
-      return NextResponse.json(buildFallbackVariants(parsed.sectionType, parsed.currentText, parsed.targetRole));
+      return NextResponse.json(
+        buildFallbackVariants(parsed.sectionType, parsed.currentText, parsed.targetRole),
+        { headers: { "x-request-id": reqId } },
+      );
     } else {
       return NextResponse.json(
         { error: "Failed to generate multi-variant suggestions" },
-        { status: 500 }
+        { status: 500, headers: { "x-request-id": reqId } },
       );
     }
   }

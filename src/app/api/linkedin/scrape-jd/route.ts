@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { extractStructuredJdKeywords } from "@/lib/linkedin-optimization";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 const extractedKeywordsSchema = z.object({
   hard_skills: z.array(z.string()).default([]),
@@ -16,9 +17,13 @@ const extractedKeywordsSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const reqId = getRequestId(req);
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "x-request-id": reqId } },
+    );
   }
 
   const limited = await enforceRateLimit("scrape", req, session.user.id);
@@ -89,12 +94,15 @@ ${jdText}
       // Keep deterministic extraction if Gemini is unavailable.
     }
 
-    return NextResponse.json({
-      jobDescription: jdText,
-      keywords,
-    });
+    return NextResponse.json(
+      { jobDescription: jdText, keywords },
+      { headers: { "x-request-id": reqId } },
+    );
   } catch (error) {
-    console.error("LinkedIn job description scraping failed:", error);
-    return NextResponse.json({ error: "Failed to scrape job description" }, { status: 500 });
+    console.error("[linkedin-scrape-jd]", reqId, "scrape failed:", error);
+    return NextResponse.json(
+      { error: "Failed to scrape job description" },
+      { status: 500, headers: { "x-request-id": reqId } },
+    );
   }
 }

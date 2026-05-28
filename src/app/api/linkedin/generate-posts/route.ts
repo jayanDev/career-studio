@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { generateJsonWithGemini } from "@/lib/ai";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 const requestSchema = z.object({
   profileText: z.string().max(8000).default(""),
@@ -24,9 +25,13 @@ const responseSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const reqId = getRequestId(req);
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "x-request-id": reqId } },
+    );
   }
 
   const limited = await enforceRateLimit("ai", req, session.user.id);
@@ -65,8 +70,9 @@ ${parsed.profileText}
 Return JSON with story_post, framework_post, question_post, case_study_post, carousel_script, hooks, hashtags, best_time_to_post.`,
       responseSchema
     );
-    return NextResponse.json(result);
-  } catch {
-    return NextResponse.json(fallback);
+    return NextResponse.json(result, { headers: { "x-request-id": reqId } });
+  } catch (error) {
+    console.warn("[linkedin-generate-posts]", reqId, "Gemini failed, returning fallback:", error);
+    return NextResponse.json(fallback, { headers: { "x-request-id": reqId } });
   }
 }

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 export const runtime = "nodejs";
 
@@ -14,9 +15,13 @@ const streamFeedbackSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const reqId = getRequestId(request);
   const session = await auth();
   if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "x-request-id": reqId } },
+    );
   }
 
   const limited = await enforceRateLimit("ai", request, session.user.id);
@@ -24,7 +29,10 @@ export async function POST(request: Request) {
 
   const parsed = streamFeedbackSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return Response.json({ error: "Invalid request" }, { status: 400 });
+    return Response.json(
+      { error: "Invalid request" },
+      { status: 400, headers: { "x-request-id": reqId } },
+    );
   }
 
   const result = streamText({

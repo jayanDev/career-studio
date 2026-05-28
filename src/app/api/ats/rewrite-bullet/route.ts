@@ -5,11 +5,16 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 export async function POST(req: Request) {
+  const reqId = getRequestId(req);
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "x-request-id": reqId } },
+    );
   }
 
   const limited = await enforceRateLimit("ai", req, session.user.id);
@@ -42,9 +47,12 @@ Guidelines:
 - Ensure the result is concise, professional, and optimized for Applicant Tracking Systems.`,
     });
 
-    return NextResponse.json(response.object);
+    return NextResponse.json(response.object, { headers: { "x-request-id": reqId } });
   } catch (error) {
-    console.error("AI bullet rewrite failed:", error);
-    return NextResponse.json({ error: "Failed to rewrite bullet point" }, { status: 500 });
+    console.error("[ats-rewrite-bullet]", reqId, "rewrite failed:", error);
+    return NextResponse.json(
+      { error: "Failed to rewrite bullet point" },
+      { status: 500, headers: { "x-request-id": reqId } },
+    );
   }
 }
