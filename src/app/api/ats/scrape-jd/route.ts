@@ -3,12 +3,17 @@ import { generateText } from "ai";
 
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Prevent the endpoint being used as an open scraper.
+  const limited = await enforceRateLimit("scrape", req, session.user.id);
+  if (limited) return limited;
 
   try {
     const { url } = await req.json();

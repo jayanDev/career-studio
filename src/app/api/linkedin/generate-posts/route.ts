@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { generateJsonWithGemini } from "@/lib/ai";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const requestSchema = z.object({
   profileText: z.string().max(8000).default(""),
@@ -27,6 +28,9 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("ai", req, session.user.id);
+  if (limited) return limited;
 
   const parsed = requestSchema.parse(await req.json());
   const fallback = {

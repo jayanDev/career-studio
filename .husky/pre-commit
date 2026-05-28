@@ -1,0 +1,3 @@
+# Pre-commit hook — runs eslint --fix + prettier on staged files via
+# lint-staged. Skip with `git commit --no-verify` when intentional.
+npx lint-staged

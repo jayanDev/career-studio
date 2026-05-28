@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const rewriteMultiSchema = z.object({
   sectionType: z.string(),
@@ -25,6 +26,9 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("ai", req, session.user.id);
+  if (limited) return limited;
 
   let parsed: z.infer<typeof rewriteMultiSchema> | null = null;
   try {

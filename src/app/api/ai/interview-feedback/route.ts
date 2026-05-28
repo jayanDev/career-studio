@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("ai", request, session.user.id);
+  if (limited) return limited;
 
   const parsed = streamFeedbackSchema.safeParse(await request.json());
   if (!parsed.success) {

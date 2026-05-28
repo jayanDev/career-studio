@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { extractStructuredJdKeywords } from "@/lib/linkedin-optimization";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const extractedKeywordsSchema = z.object({
   hard_skills: z.array(z.string()).default([]),
@@ -19,6 +20,9 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("scrape", req, session.user.id);
+  if (limited) return limited;
 
   try {
     const { url } = await req.json();

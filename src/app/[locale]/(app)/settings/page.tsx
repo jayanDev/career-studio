@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AlertTriangle, BadgeCheck, CalendarDays, Copy, Download, KeyRound, LogOut, Mail, Shield, Sparkles, UserRound } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { DeleteAccountCard } from "@/components/account/delete-account-card";
 import { PlanTierBadge } from "@/components/account/plan-tier-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -317,18 +318,7 @@ export default async function SettingsPage({ params, searchParams }: SettingsPag
                   </Button>
                 </form>
               </div>
-              <div className="flex flex-col gap-3 rounded-md border border-rose-200 bg-rose-50 p-4 md:flex-row md:items-center md:justify-between">
-                <span>
-                  <span className="flex items-center gap-2 font-medium text-rose-900">
-                    <UserRound className="size-4" />
-                    {t("deleteTitle")}
-                  </span>
-                  <span className="mt-1 block text-sm text-rose-900/75">{t("deleteBody")}</span>
-                </span>
-                <Button disabled variant="destructive">
-                  {t("deleteDisabled")}
-                </Button>
-              </div>
+              <DeleteAccountCard accountEmail={user.email ?? ""} />
             </CardContent>
           </Card>
         </div>

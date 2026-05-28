@@ -4,12 +4,16 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("ai", req, session.user.id);
+  if (limited) return limited;
 
   try {
     const { bullet, context } = await req.json();
