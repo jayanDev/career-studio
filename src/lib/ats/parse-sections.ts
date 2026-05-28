@@ -15,6 +15,7 @@
 import { z } from "zod";
 
 import { generateJsonWithGemini } from "@/lib/ai";
+import { captureError } from "@/lib/observability";
 
 const contactSchema = z.object({
   name: z.string().nullable(),
@@ -306,7 +307,12 @@ export async function parseResume(text: string): Promise<ParsedResumeReport> {
     const parsed = await generateJsonWithGemini(AI_PROMPT(text), parsedResumeSchema);
     return { parsed, confidence: scoreConfidence(parsed), method: "ai" };
   } catch (error) {
-    console.warn("[ats] Gemini resume parse failed, using heuristic:", error);
+    // Heuristic fallback is materially weaker; surface the failure so a
+    // stream of these (quota / outage / schema drift) is visible.
+    captureError(error, {
+      feature: "ats:resume-parse",
+      extra: { textLength: text.length },
+    });
     return parseResumeHeuristic(text);
   }
 }

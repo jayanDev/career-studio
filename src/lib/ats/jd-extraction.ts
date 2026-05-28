@@ -13,6 +13,7 @@
 import { z } from "zod";
 
 import { generateJsonWithGemini } from "@/lib/ai";
+import { captureError } from "@/lib/observability";
 import { extractJdKeywords } from "@/lib/ats-scoring";
 import { resumeMentionsSkill } from "@/lib/ats/skill-taxonomy";
 
@@ -94,7 +95,12 @@ export async function analyseJobDescription(jobDescription: string): Promise<JdA
     return await generateJsonWithGemini(PROMPT(trimmed), jdAnalysisSchema);
   } catch (error) {
     // Soft-fail: scoring should never block on the AI path being down.
-    console.warn("[ats] Gemini JD extraction failed, using fallback:", error);
+    // We still want the failure visible — fallback quality is materially
+    // worse, so a stream of these points at quota / outage / bad prompt.
+    captureError(error, {
+      feature: "ats:jd-extraction",
+      extra: { jdLength: trimmed.length },
+    });
     return fallbackJdAnalysis(trimmed);
   }
 }
