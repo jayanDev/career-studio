@@ -1,3 +1,6 @@
+import { captureMessage } from "@/lib/observability";
+import { getRequestId } from "@/lib/request-id";
+
 /**
  * Lightweight in-memory token-bucket rate limiter.
  *
@@ -140,6 +143,21 @@ export async function enforceRateLimit(
   const key = rateLimitKey(scope, { userId, request });
   const result = consume(key, preset.limit, preset.windowMs);
   if (result.allowed) return null;
+
+  // Surface denials through the observability seam. Useful for spotting
+  // abuse patterns (a single IP hammering /api/ats/score) once a real
+  // log shipper is plugged in. Key is intentionally low-cardinality (no
+  // raw IPs once a user id is available).
+  captureMessage("rate-limit denied", {
+    requestId: getRequestId(request),
+    feature: `rate-limit:${scope}`,
+    extra: {
+      key,
+      retryAfterSeconds: result.retryAfterSeconds,
+      limit: preset.limit,
+      windowMs: preset.windowMs,
+    },
+  });
 
   return new Response(
     JSON.stringify({
