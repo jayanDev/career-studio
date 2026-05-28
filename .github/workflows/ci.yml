@@ -49,5 +49,8 @@ jobs:
       - name: Unit tests
         run: npx vitest run
 
+      - name: i18n key parity
+        run: node scripts/check-i18n-parity.mjs
+
       - name: Build
         run: npx next build

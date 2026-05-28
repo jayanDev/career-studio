@@ -4,17 +4,21 @@ import { useEffect } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { captureError } from "@/lib/observability";
 
 /**
  * Root error boundary. Caught by Next.js when any server or client
  * component throws above the route segment. We deliberately don't leak
  * the error message to the UI — production users see a friendly
- * page; details still go to the console for the dev tools panel.
+ * page; details still go to the observability seam (currently console,
+ * trivially swapped for Sentry / Datadog when a DSN is available).
  */
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.error("[root-error]", error);
+    captureError(error, {
+      requestId: error.digest, // Next.js stamps a digest on server errors
+      feature: "root-error-boundary",
+    });
   }, [error]);
 
   return (

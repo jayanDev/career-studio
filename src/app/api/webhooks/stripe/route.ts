@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
+import { captureError } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { getRequestId } from "@/lib/request-id";
 import { getStripe } from "@/lib/stripe";
@@ -80,7 +81,11 @@ export async function POST(request: Request) {
         console.info("[stripe-webhook]", reqId, "unhandled event type:", event.type);
     }
   } catch (error) {
-    console.error("[stripe-webhook]", reqId, "handler failed for", event.type, error);
+    captureError(error, {
+      requestId: reqId,
+      feature: "stripe-webhook",
+      extra: { eventType: event.type, eventId: event.id },
+    });
     // Return 500 so Stripe retries — better than silently losing the event.
     return NextResponse.json(
       { error: "Handler failed" },
