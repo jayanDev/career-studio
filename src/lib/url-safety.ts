@@ -28,6 +28,87 @@ const BLOCKED_HOST_EXACT = new Set(["localhost", "0.0.0.0", "::1", "[::1]"]);
 
 const BLOCKED_HOST_SUFFIXES = [".local", ".internal"];
 
+/**
+ * Default body cap for scrapers: 2 MiB of decoded text. Real job
+ * postings are far smaller; a 2 MiB ceiling still leaves headroom
+ * for noisy pages without letting a hostile origin stream a 5 GiB
+ * payload into our worker.
+ */
+export const DEFAULT_FETCH_CAP_BYTES = 2 * 1024 * 1024;
+
+export class FetchCapExceeded extends Error {
+  constructor(public readonly cap: number) {
+    super(`Response exceeded ${cap} bytes`);
+    this.name = "FetchCapExceeded";
+  }
+}
+
+/**
+ * Fetch a URL as text with a hard cap on the decoded body size.
+ *
+ * Streams the response so an attacker can't make us materialise a
+ * multi-GB body before we notice. If the server advertises a
+ * `content-length` larger than the cap we reject without reading at
+ * all. Once the cap is hit mid-stream we abort the reader.
+ *
+ * Callers must still pre-validate the URL with `isSafeUrl`.
+ */
+export async function fetchTextWithCap(
+  url: string,
+  init: RequestInit & { maxBytes?: number } = {},
+): Promise<{ status: number; ok: boolean; text: string }> {
+  const { maxBytes = DEFAULT_FETCH_CAP_BYTES, ...fetchInit } = init;
+  const res = await fetch(url, fetchInit);
+
+  const advertised = Number(res.headers.get("content-length") ?? NaN);
+  if (Number.isFinite(advertised) && advertised > maxBytes) {
+    // Hang up immediately — no point reading a body we'd reject.
+    try {
+      await res.body?.cancel();
+    } catch {
+      /* ignore */
+    }
+    throw new FetchCapExceeded(maxBytes);
+  }
+
+  if (!res.body) {
+    const text = await res.text();
+    return { status: res.status, ok: res.ok, text };
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        received += value.byteLength;
+        if (received > maxBytes) {
+          try {
+            await reader.cancel();
+          } catch {
+            /* ignore */
+          }
+          throw new FetchCapExceeded(maxBytes);
+        }
+        text += decoder.decode(value, { stream: true });
+      }
+    }
+    text += decoder.decode();
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return { status: res.status, ok: res.ok, text };
+}
+
 export function isSafeUrl(raw: string): boolean {
   let parsed: URL;
   try {

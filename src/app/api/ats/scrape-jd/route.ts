@@ -7,7 +7,7 @@ import { geminiModel } from "@/lib/ai";
 import { captureError } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getRequestId } from "@/lib/request-id";
-import { isSafeUrl } from "@/lib/url-safety";
+import { FetchCapExceeded, fetchTextWithCap, isSafeUrl } from "@/lib/url-safety";
 
 const scrapeBodySchema = z.object({
   url: z
@@ -55,12 +55,11 @@ export async function POST(req: Request) {
   const { url } = parsed.data;
 
   try {
-    const res = await fetch(url, {
+    const res = await fetchTextWithCap(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
       },
-      next: { revalidate: 3600 },
     });
 
     if (!res.ok) {
@@ -70,7 +69,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const html = await res.text();
+    const html = res.text;
     // Clean up HTML slightly to reduce token count
     const cleanedHtml = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
@@ -98,6 +97,12 @@ Output ONLY the clean, structured job description text, formatted cleanly.`,
       { headers: { "x-request-id": reqId } },
     );
   } catch (error) {
+    if (error instanceof FetchCapExceeded) {
+      return NextResponse.json(
+        { error: "Page too large to scrape" },
+        { status: 413, headers: { "x-request-id": reqId } },
+      );
+    }
     captureError(error, {
       requestId: reqId,
       feature: "ats:scrape-jd",

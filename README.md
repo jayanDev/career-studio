@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Career Studio Next
 
-## Getting Started
+Sri Lanka-focused career platform on Next.js 15 App Router. Tools include
+ATS Checker, CV / GCV Builder, LinkedIn Optimizer, Cover Letter, Career
+GPS, and recruiter-side Talent Pool. AI features run on Google Gemini via
+the Vercel AI SDK and degrade gracefully when no key is set.
 
-First, run the development server:
+## Stack
+
+- Next.js 15 (App Router, React 19)
+- Prisma 7 + Postgres
+- NextAuth 5 (Google + Resend magic-link)
+- Tailwind 4 + Radix / shadcn UI
+- Google Gemini via `ai` SDK
+- Stripe for billing
+- Inngest for background jobs
+- Vitest + Playwright (`@axe-core/playwright` for a11y)
+
+## Getting started
 
 ```bash
+# 1. Install
+npm install
+
+# 2. Copy env defaults; fill in DATABASE_URL at minimum.
+cp .env.example .env
+
+# 3. Push schema
+npx prisma migrate deploy
+
+# 4. Run the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Every env var is documented in `.env.example`, including which features
+fail open when a key is missing (AI banner instead of 500, billing 503,
+etc.).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Verifying your change
 
-## Learn More
+Before pushing, run the same checks CI does:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run verify   # typecheck + lint + i18n parity + vitest
+npm run test:e2e # Playwright smoke + a11y (requires the dev server)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Individual commands:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command              | Purpose                                     |
+| -------------------- | ------------------------------------------- |
+| `npm run typecheck`  | `tsc --noEmit`                              |
+| `npm run lint`       | ESLint                                      |
+| `npm test`           | Vitest (unit tests for pure modules)        |
+| `npm run check:i18n` | en / si / ta key parity                     |
+| `npm run test:e2e`   | Playwright (public routes, health, a11y)    |
+| `npm run analyze`    | Build with bundle analyzer (`ANALYZE=true`) |
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `docs/RUNBOOK.md` — operations runbook (deploy, health, incidents,
+  rollback)
+- `SECURITY.md` — vulnerability disclosure policy
+- `AGENTS.md` / `CLAUDE.md` — conventions for AI assistants working in
+  this repo
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy
+
+`main` deploys to Vercel automatically. See `docs/RUNBOOK.md` for the
+first-time setup, env var checklist, and rollback procedure.
