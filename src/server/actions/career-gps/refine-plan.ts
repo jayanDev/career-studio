@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { generateJsonWithGemini } from "@/lib/ai";
+import { captureError } from "@/lib/observability";
 import { auth } from "@/lib/auth";
 import { careerGpsPlanResultSchema, type CareerGpsPlanResult } from "@/lib/career-gps";
 import { prisma } from "@/lib/prisma";
@@ -110,7 +111,12 @@ ${JSON.stringify(existing).slice(0, 12000)}
       const ai = await generateJsonWithGemini(prompt, careerGpsPlanResultSchema);
       refined = careerGpsPlanResultSchema.parse(ai);
     } catch (error) {
-      console.warn("[career-gps] refine failed, keeping existing plan:", error);
+      // Falling back to the prior plan is benign UX but hides the cause
+      // (quota, schema drift, prompt bug). Surface it.
+      captureError(error, {
+        feature: "career-gps:refine",
+        extra: { planId: parsed.planId, refinementLength: parsed.refinement.length },
+      });
       method = "fallback";
     }
   }

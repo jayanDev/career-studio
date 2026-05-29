@@ -1,10 +1,57 @@
 import { NextResponse } from "next/server";
 import { generateText } from "ai";
+import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
+import { captureError } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getRequestId } from "@/lib/request-id";
+
+/**
+ * Reject anything that isn't a public http(s) URL. Without this, the
+ * endpoint could be coerced into SSRF: a request like
+ * `http://169.254.169.254/...` would happily fetch cloud metadata, and
+ * `file://` would read local files in some Node fetch implementations.
+ *
+ * The hostname allow-rules are intentionally minimal — the heavy lift
+ * is "must be a parseable http(s) URL with a real public hostname."
+ */
+function isSafeUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  // Reject obvious internal targets. Not a complete SSRF defence (a
+  // malicious DNS record could still resolve to a private IP) but
+  // raises the bar materially.
+  if (
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+const scrapeBodySchema = z.object({
+  url: z
+    .string()
+    .min(1, "url is required")
+    .max(2048, "url too long")
+    .refine(isSafeUrl, "url must be a public http(s) URL"),
+});
 
 export async function POST(req: Request) {
   const reqId = getRequestId(req);
@@ -20,12 +67,30 @@ export async function POST(req: Request) {
   const limited = await enforceRateLimit("scrape", req, session.user.id);
   if (limited) return limited;
 
+  // Validate body shape before any I/O — catches SSRF attempts and
+  // garbage payloads with a useful 400 instead of a generic 500.
+  let body: unknown;
   try {
-    const { url } = await req.json();
-    if (!url || !url.startsWith("http")) {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-    }
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Body must be JSON" },
+      { status: 400, headers: { "x-request-id": reqId } },
+    );
+  }
+  const parsed = scrapeBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid request body",
+        issues: parsed.error.issues.map((i) => ({ path: i.path, message: i.message })),
+      },
+      { status: 400, headers: { "x-request-id": reqId } },
+    );
+  }
+  const { url } = parsed.data;
 
+  try {
     const res = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -35,7 +100,10 @@ export async function POST(req: Request) {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: "Failed to fetch URL" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch URL" },
+        { status: 502, headers: { "x-request-id": reqId } },
+      );
     }
 
     const html = await res.text();
@@ -66,7 +134,11 @@ Output ONLY the clean, structured job description text, formatted cleanly.`,
       { headers: { "x-request-id": reqId } },
     );
   } catch (error) {
-    console.error("[ats-scrape-jd]", reqId, "scrape failed:", error);
+    captureError(error, {
+      requestId: reqId,
+      feature: "ats:scrape-jd",
+      extra: { host: new URL(url).hostname },
+    });
     return NextResponse.json(
       { error: "Failed to scrape job description" },
       { status: 500, headers: { "x-request-id": reqId } },
