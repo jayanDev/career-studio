@@ -7,7 +7,13 @@ import { geminiModel } from "@/lib/ai";
 import { captureError } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getRequestId } from "@/lib/request-id";
-import { FetchCapExceeded, fetchTextWithCap, isSafeUrl } from "@/lib/url-safety";
+import {
+  FetchCapExceeded,
+  FetchContentTypeRejected,
+  FetchTimeout,
+  fetchTextWithCap,
+  isSafeUrl,
+} from "@/lib/url-safety";
 
 const scrapeBodySchema = z.object({
   url: z
@@ -101,6 +107,18 @@ Output ONLY the clean, structured job description text, formatted cleanly.`,
       return NextResponse.json(
         { error: "Page too large to scrape" },
         { status: 413, headers: { "x-request-id": reqId } },
+      );
+    }
+    if (error instanceof FetchContentTypeRejected) {
+      return NextResponse.json(
+        { error: "URL does not point to a readable web page" },
+        { status: 415, headers: { "x-request-id": reqId } },
+      );
+    }
+    if (error instanceof FetchTimeout) {
+      return NextResponse.json(
+        { error: "Timed out fetching the URL" },
+        { status: 504, headers: { "x-request-id": reqId } },
       );
     }
     captureError(error, {

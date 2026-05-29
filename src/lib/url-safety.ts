@@ -36,6 +36,23 @@ const BLOCKED_HOST_SUFFIXES = [".local", ".internal"];
  */
 export const DEFAULT_FETCH_CAP_BYTES = 2 * 1024 * 1024;
 
+/** Default wall-clock budget for a scrape fetch. */
+export const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
+
+/**
+ * Response content-types a scraper is willing to read. Anything else
+ * (images, PDFs, octet-streams) is pointless to text-decode for a job
+ * posting and is usually a sign the URL points at the wrong resource —
+ * or an attacker trying to feed us a giant binary.
+ */
+export const DEFAULT_ALLOWED_CONTENT_TYPES = [
+  "text/html",
+  "text/plain",
+  "text/xml",
+  "application/xhtml",
+  "application/xml",
+];
+
 export class FetchCapExceeded extends Error {
   constructor(public readonly cap: number) {
     super(`Response exceeded ${cap} bytes`);
@@ -43,70 +60,132 @@ export class FetchCapExceeded extends Error {
   }
 }
 
+export class FetchContentTypeRejected extends Error {
+  constructor(public readonly contentType: string) {
+    super(`Unsupported content-type: ${contentType || "(none)"}`);
+    this.name = "FetchContentTypeRejected";
+  }
+}
+
+export class FetchTimeout extends Error {
+  constructor(public readonly timeoutMs: number) {
+    super(`Request timed out after ${timeoutMs}ms`);
+    this.name = "FetchTimeout";
+  }
+}
+
+type FetchTextWithCapOptions = RequestInit & {
+  maxBytes?: number;
+  timeoutMs?: number;
+  /** Content-type prefixes to accept. Pass `[]` to skip the check. */
+  allowedContentTypes?: string[];
+};
+
 /**
- * Fetch a URL as text with a hard cap on the decoded body size.
+ * Fetch a URL as text with three guards layered on top of `fetch`:
  *
- * Streams the response so an attacker can't make us materialise a
- * multi-GB body before we notice. If the server advertises a
- * `content-length` larger than the cap we reject without reading at
- * all. Once the cap is hit mid-stream we abort the reader.
+ *   1. Timeout — aborts after `timeoutMs` so a slow-loris origin can't
+ *      pin a worker open indefinitely.
+ *   2. Content-type — rejects responses that aren't text/HTML/XML before
+ *      reading the body.
+ *   3. Size cap — rejects on an oversized advertised `content-length`,
+ *      and aborts mid-stream the moment the decoded body exceeds the cap.
  *
  * Callers must still pre-validate the URL with `isSafeUrl`.
  */
 export async function fetchTextWithCap(
   url: string,
-  init: RequestInit & { maxBytes?: number } = {},
+  init: FetchTextWithCapOptions = {},
 ): Promise<{ status: number; ok: boolean; text: string }> {
-  const { maxBytes = DEFAULT_FETCH_CAP_BYTES, ...fetchInit } = init;
-  const res = await fetch(url, fetchInit);
+  const {
+    maxBytes = DEFAULT_FETCH_CAP_BYTES,
+    timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
+    allowedContentTypes = DEFAULT_ALLOWED_CONTENT_TYPES,
+    signal: callerSignal,
+    ...fetchInit
+  } = init;
 
-  const advertised = Number(res.headers.get("content-length") ?? NaN);
-  if (Number.isFinite(advertised) && advertised > maxBytes) {
-    // Hang up immediately — no point reading a body we'd reject.
-    try {
-      await res.body?.cancel();
-    } catch {
-      /* ignore */
-    }
-    throw new FetchCapExceeded(maxBytes);
+  // Wire up a timeout abort that composes with any caller-provided signal.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  if (callerSignal) {
+    if (callerSignal.aborted) controller.abort();
+    else callerSignal.addEventListener("abort", () => controller.abort(), { once: true });
   }
 
-  if (!res.body) {
-    const text = await res.text();
-    return { status: res.status, ok: res.ok, text };
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let received = 0;
-  let text = "";
   try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      if (value) {
-        received += value.byteLength;
-        if (received > maxBytes) {
-          try {
-            await reader.cancel();
-          } catch {
-            /* ignore */
-          }
-          throw new FetchCapExceeded(maxBytes);
+    let res: Response;
+    try {
+      res = await fetch(url, { ...fetchInit, signal: controller.signal });
+    } catch (error) {
+      if (controller.signal.aborted) throw new FetchTimeout(timeoutMs);
+      throw error;
+    }
+
+    // Content-type guard. Empty content-type is tolerated (some origins
+    // omit it); a present-but-unsupported type is rejected.
+    if (allowedContentTypes.length > 0) {
+      const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+      if (contentType && !allowedContentTypes.some((prefix) => contentType.startsWith(prefix))) {
+        try {
+          await res.body?.cancel();
+        } catch {
+          /* ignore */
         }
-        text += decoder.decode(value, { stream: true });
+        throw new FetchContentTypeRejected(contentType);
       }
     }
-    text += decoder.decode();
-  } finally {
-    try {
-      reader.releaseLock();
-    } catch {
-      /* ignore */
-    }
-  }
 
-  return { status: res.status, ok: res.ok, text };
+    const advertised = Number(res.headers.get("content-length") ?? NaN);
+    if (Number.isFinite(advertised) && advertised > maxBytes) {
+      // Hang up immediately — no point reading a body we'd reject.
+      try {
+        await res.body?.cancel();
+      } catch {
+        /* ignore */
+      }
+      throw new FetchCapExceeded(maxBytes);
+    }
+
+    if (!res.body) {
+      const text = await res.text();
+      return { status: res.status, ok: res.ok, text };
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let received = 0;
+    let text = "";
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          received += value.byteLength;
+          if (received > maxBytes) {
+            try {
+              await reader.cancel();
+            } catch {
+              /* ignore */
+            }
+            throw new FetchCapExceeded(maxBytes);
+          }
+          text += decoder.decode(value, { stream: true });
+        }
+      }
+      text += decoder.decode();
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return { status: res.status, ok: res.ok, text };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function isSafeUrl(raw: string): boolean {
