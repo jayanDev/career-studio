@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { Locale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
-import { generateTextWithGemini, geminiModel } from "@/lib/ai";
+import { geminiModel } from "@/lib/ai";
 import { linkedInAuditResultSchema, type LinkedInAuditResult } from "@/lib/linkedin-audit";
 import { buildLinkedInAudit } from "@/lib/linkedin-optimization";
 import { prisma } from "@/lib/prisma";

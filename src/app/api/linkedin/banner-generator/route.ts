@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const imageUrl = `data:image/svg+xml;base64,${base64Svg}`;
 
     return NextResponse.json({ imageUrl });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to generate banner" },
       { status: 500 }

@@ -28,7 +28,7 @@ ${JSON.stringify(profileData).slice(0, 1000)}`;
     });
 
     return NextResponse.json(response.object);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to generate design suggestions" },
       { status: 500 }

@@ -2,7 +2,7 @@ import { inngest } from "@/lib/inngest";
 import { prisma } from "@/lib/prisma";
 import { generateJsonWithGemini } from "@/lib/ai";
 import { careerGpsPlanResultSchema, type CareerGpsPlanResult } from "@/lib/career-gps";
-import { buildCareerGpsEnhancements, type CareerGpsInputProfile } from "@/lib/career-gps-insights";
+import { buildCareerGpsEnhancements } from "@/lib/career-gps-insights";
 import { getCandidateResources } from "@/server/services/career-gps/resource-aggregator";
 import { CareerTaskType, PlanTier } from "@prisma/client";
 
@@ -55,7 +55,6 @@ export const generateCareerGpsPlan = inngest.createFunction(
     id: "generate-career-gps-plan",
     triggers: [{ event: "career-gps/plan.generate" }],
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inngest event shape varies per trigger; typed at the schema level instead
   async ({ event, step }: { event: any; step: any }) => {
     const { sessionId, userId, inputProfile, questions, goals } = event.data;
 

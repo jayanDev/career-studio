@@ -7,7 +7,6 @@ export const scheduleLinkedInReAudits = inngest.createFunction(
     id: "schedule-linkedin-reaudits",
     triggers: [{ cron: "0 0 * * 1" }], // Every Monday at midnight UTC
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inngest step types vary by trigger
   async ({ step }: { step: any }) => {
     let skip = 0;
     const batchSize = 100;

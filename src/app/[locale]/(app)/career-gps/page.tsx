@@ -577,18 +577,6 @@ function SkillOverlapDonut({ value }: { value: number }) {
   );
 }
 
-function domainColor(domain: string) {
-  const colors: Record<string, string> = {
-    Tech: "#0f766e",
-    Business: "#2563eb",
-    Finance: "#4f46e5",
-    Creative: "#be123c",
-    Service: "#b45309",
-    General: "#525252",
-  };
-  return colors[domain] ?? colors.General;
-}
-
 function TagList({ title, items, tone }: { title: string; items: string[]; tone: "green" | "red" | "neutral" }) {
   const styles = {
     green: "bg-emerald-50 text-emerald-800 border-emerald-100",

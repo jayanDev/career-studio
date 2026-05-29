@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, BadgeCheck, CalendarDays, Copy, Download, KeyRound, LogOut, Mail, Shield, Sparkles, UserRound } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CalendarDays, Copy, Download, KeyRound, LogOut, Mail, Shield, Sparkles } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { DeleteAccountCard } from "@/components/account/delete-account-card";

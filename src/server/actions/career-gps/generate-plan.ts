@@ -1,14 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { CareerTaskType, PlanTier } from "@prisma/client";
 import { z } from "zod";
 
 import type { Locale } from "@/i18n-config";
 import { auth } from "@/lib/auth";
-import { generateJsonWithGemini } from "@/lib/ai";
-import { careerGpsPlanResultSchema, type CareerGpsPlanResult } from "@/lib/career-gps";
-import { buildCareerGpsEnhancements, type CareerGpsInputProfile } from "@/lib/career-gps-insights";
+import { type CareerGpsInputProfile } from "@/lib/career-gps-insights";
 import { inngest } from "@/lib/inngest";
 import { prisma } from "@/lib/prisma";
 

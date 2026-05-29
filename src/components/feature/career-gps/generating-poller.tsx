@@ -20,7 +20,7 @@ export function GeneratingPoller({ sessionId }: { sessionId: string }) {
             return;
           }
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
       timeoutId = setTimeout(checkStatus, 3000);

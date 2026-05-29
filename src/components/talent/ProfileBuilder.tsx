@@ -7,10 +7,10 @@
 
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { 
-  Plus, Settings2, Trash2, ShieldCheck, Mail, Phone, ExternalLink, 
-  MapPin, Briefcase, GraduationCap, Code, Globe, 
-  MessageSquare, LayoutTemplate, Star, Edit, Upload, FileText, Download, Target, Sparkles, Check, ChevronDown, CheckCircle2, AlertTriangle, Save, Eye, ArrowRight, Video, User,
+import {
+  Plus, Settings2, Trash2, ShieldCheck,
+  Briefcase, GraduationCap, Globe,
+  Upload, FileText, Sparkles, Save, User,
   Lock, Wrench, FolderGit, HeartHandshake, Award
 } from "lucide-react";
 import { parseLinkedInPdfAction } from "@/server/actions/linkedin/audit";
@@ -713,7 +713,7 @@ export function ProfileBuilder({ initialProfile, locale }: ProfileBuilderProps) 
                             if (!baseInfo.bio && parsed.about) {
                               setBaseInfo(prev => ({ ...prev, bio: parsed.about }));
                             }
-                          } catch (err) {
+                          } catch {
                             toast.error("Failed to parse CV. Ensure it is a valid PDF.", { id: "cv-upload" });
                           }
                         }}

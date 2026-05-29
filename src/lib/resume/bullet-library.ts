@@ -66,7 +66,7 @@ export async function searchBullets(query: string, role?: string): Promise<Bulle
         text: b.text
       }));
     }
-  } catch (error) {
+  } catch {
     // Silently fallback to static if DB is not available
   }
 
