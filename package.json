@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "check:i18n": "node scripts/check-i18n-parity.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run check:i18n && npm test",
     "prisma:validate": "prisma validate",
     "prisma:format": "prisma format",
     "prepare": "husky"

@@ -7,43 +7,7 @@ import { geminiModel } from "@/lib/ai";
 import { captureError } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getRequestId } from "@/lib/request-id";
-
-/**
- * Reject anything that isn't a public http(s) URL. Without this, the
- * endpoint could be coerced into SSRF: a request like
- * `http://169.254.169.254/...` would happily fetch cloud metadata, and
- * `file://` would read local files in some Node fetch implementations.
- *
- * The hostname allow-rules are intentionally minimal — the heavy lift
- * is "must be a parseable http(s) URL with a real public hostname."
- */
-function isSafeUrl(raw: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(raw);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
-  const host = parsed.hostname.toLowerCase();
-  // Reject obvious internal targets. Not a complete SSRF defence (a
-  // malicious DNS record could still resolve to a private IP) but
-  // raises the bar materially.
-  if (
-    host === "localhost" ||
-    host === "0.0.0.0" ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal") ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-  ) {
-    return false;
-  }
-  return true;
-}
+import { isSafeUrl } from "@/lib/url-safety";
 
 const scrapeBodySchema = z.object({
   url: z

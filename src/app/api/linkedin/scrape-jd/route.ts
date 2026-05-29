@@ -5,8 +5,10 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { geminiModel } from "@/lib/ai";
 import { extractStructuredJdKeywords } from "@/lib/linkedin-optimization";
+import { captureError } from "@/lib/observability";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getRequestId } from "@/lib/request-id";
+import { isSafeUrl } from "@/lib/url-safety";
 
 const extractedKeywordsSchema = z.object({
   hard_skills: z.array(z.string()).default([]),
@@ -14,6 +16,14 @@ const extractedKeywordsSchema = z.object({
   certifications: z.array(z.string()).default([]),
   tools: z.array(z.string()).default([]),
   seniority: z.string().default("Mid-Senior"),
+});
+
+const scrapeBodySchema = z.object({
+  url: z
+    .string()
+    .min(1, "url is required")
+    .max(2048, "url too long")
+    .refine(isSafeUrl, "url must be a public http(s) URL"),
 });
 
 export async function POST(req: Request) {
@@ -29,12 +39,28 @@ export async function POST(req: Request) {
   const limited = await enforceRateLimit("scrape", req, session.user.id);
   if (limited) return limited;
 
+  let body: unknown;
   try {
-    const { url } = await req.json();
-    if (!url || !url.startsWith("http")) {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-    }
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Body must be JSON" },
+      { status: 400, headers: { "x-request-id": reqId } },
+    );
+  }
+  const parsed = scrapeBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid request body",
+        issues: parsed.error.issues.map((i) => ({ path: i.path, message: i.message })),
+      },
+      { status: 400, headers: { "x-request-id": reqId } },
+    );
+  }
+  const { url } = parsed.data;
 
+  try {
     const res = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -44,7 +70,10 @@ export async function POST(req: Request) {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: "Failed to fetch URL" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch URL" },
+        { status: 502, headers: { "x-request-id": reqId } },
+      );
     }
 
     const html = await res.text();
@@ -99,7 +128,11 @@ ${jdText}
       { headers: { "x-request-id": reqId } },
     );
   } catch (error) {
-    console.error("[linkedin-scrape-jd]", reqId, "scrape failed:", error);
+    captureError(error, {
+      requestId: reqId,
+      feature: "linkedin:scrape-jd",
+      extra: { host: new URL(url).hostname },
+    });
     return NextResponse.json(
       { error: "Failed to scrape job description" },
       { status: 500, headers: { "x-request-id": reqId } },
